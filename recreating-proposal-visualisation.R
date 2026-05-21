@@ -16,3 +16,8 @@ data(lnd) # loads the specified London map dataset
 summary(lnd)
 ldn_boroughs <- st_geometry(lnd) # gets geometry from sf object
 plot(ldn_boroughs)
+
+# Importing the AED data
+library(readxl)
+AED_data_20_05_26 <- read_excel("data/AED_data_20-05-26.xlsx", 
+                                sheet = "data_extract_2026-05-06")
