@@ -36,7 +36,10 @@ ldn_AED_data_sf <-AED_data_sf[london_idx,]
 # Plotting London AEDs
 ggplot() + # initialises a ggplot object, layers added
   geom_sf(data = ldn_boroughs) +
-  geom_sf(data = ldn_AED_data_sf,
+  geom_sf(data=ldn_AED_data_sf,
           size = 0.005,
-          colour = 'red')
+          aes(colour = 'AED')) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  coord_sf()
 
