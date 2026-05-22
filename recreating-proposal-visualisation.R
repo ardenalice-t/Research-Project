@@ -10,12 +10,8 @@ plot(st_geometry(lnd_boundary_map),border="darkgray")
 # testing something - to make them have the same crs by overriding 
 lnd_boundary_map = st_transform(lnd_boundary_map, crs=4326)
 
-
 # Getting the borough maps
-data(lnd) # loads the specified London map dataset
-summary(lnd)
-ldn_boroughs <- st_geometry(lnd) # gets geometry from sf object
-plot(ldn_boroughs)
+ldn_boroughs <- lnd
 
 
 # Importing the AED data
@@ -34,10 +30,10 @@ ldn_AED_data_sf <-AED_data_sf[london_idx,]
 
 
 # Plotting London AEDs
-ggplot() + # initialises a ggplot object, layers added
+ggplot() + # initializes a ggplot object, layers added
   geom_sf(data = ldn_boroughs) +
   geom_sf(data=ldn_AED_data_sf,
-          size = 0.005,
+          size = 0.005,alpha = 0.5,
           aes(colour = 'AED')) +
   xlab("Longitude") +
   ylab("Latitude") +
