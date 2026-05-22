@@ -21,6 +21,9 @@ OA_observations <- OA_pop_data %>%
             over_50_proportion = 
               sum(Observation[(`Age (6 categories) Code`==5) | 
                                 (`Age (6 categories) Code`==6)]) /
+              sum(Observation),
+            bad_gh_proportion = 
+              sum(Observation[`General health (4 categories) Code`==3]) /
               sum(Observation)
             )
 
@@ -32,6 +35,9 @@ LSOA_observations <- LSOA_pop_data %>%
             over_50_proportion = 
               sum(Observation[(`Age (6 categories) Code`==5) | 
                                 (`Age (6 categories) Code`==6)]) /
+              sum(Observation),
+            bad_gh_proportion = 
+              sum(Observation[`General health (4 categories) Code`==3]) /
               sum(Observation))
 
 # Joining the data with the previous maps 
@@ -54,6 +60,10 @@ ggplot() +
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
           aes(fill = over_50_proportion))
+
+ggplot() +
+  geom_sf(data = LSOA_map, lwd=0.001, 
+          aes(fill = bad_gh_proportion))
 
           
                 
