@@ -29,6 +29,8 @@ AED_data_sf = st_transform(AED_data_sf, crs=st_crs(ldn_boundary_map))
 london_idx <- st_contains(ldn_boundary_map, AED_data_sf)[[1]]
 ldn_AED_data_sf <-AED_data_sf[london_idx,]
 
+write_sf(ldn_AED_data_sf, "data/LDN_AEDs/ldn_AEDs_map.shp")
+
 
 # Plotting London AEDs
 ggplot() + # initializes a ggplot object, layers added
