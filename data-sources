@@ -1,4 +1,8 @@
-Population data file 
+Population data file OA
 data/Age-GH-Sex_Output-Area.csv
 https://www.ons.gov.uk/
 https://static.ons.gov.uk/datasets/b7c4cd40-0583-4187-977e-2b8e1833febb/custom-filtered-2026-05-20T12:50:25Z.csv#get-data
+
+Population data LSOA
+data/Sex-GH-Age_LSOA.csv
+https://www.ons.gov.uk/datasets/create/filter-outputs/361a93af-cc0e-4b8a-bac2-332c2d0a7653#get-data
