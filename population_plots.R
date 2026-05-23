@@ -82,12 +82,17 @@ ggplot() +
 ### Household deprivation ###
 
 LSOA_HD_data <- read_csv("data/household_deprivation_LSOA.csv")
-LSOA_HD_data <- mutate(LSOA_HD_data, `Household deprivation (6 categories) Code` = ifelse(`Household deprivation (6 categories) Code` == -8, NA, `Household deprivation (6 categories) Code`))
+
+LSOA_HD_data <- mutate(LSOA_HD_data, 
+                       `Household deprivation (6 categories) Code` = 
+                         ifelse(`Household deprivation (6 categories) Code` == -8, NA, `Household deprivation (6 categories) Code`))
+
 LSOA_HD_data <- LSOA_HD_data %>% 
   group_by(`Lower layer Super Output Areas Code`)%>% 
   summarise(avg_deprivation = 
               sum(Observation * `Household deprivation (6 categories) Code`, na.rm = TRUE) /
               sum(Observation, na.rm = TRUE))
+
 LSOA_map <- left_join(LSOA_map, LSOA_HD_data, 
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 ggplot() +
@@ -122,4 +127,6 @@ ggplot() +
           aes(fill = count_AEDs)) +
   scale_fill_steps(n.breaks = 8, limits = c(0,30))
 
-                
+
+# Saving the result
+write_sf(LSOA_map, "data/LSOA_map-pop_wd_hd_aed.shp")
