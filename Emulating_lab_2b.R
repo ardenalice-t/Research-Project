@@ -78,9 +78,9 @@ A2 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 plot.nb(lsoa_nb, LSOA_map$geometry, add = TRUE, col='red')  
 
 
-car.out <- spautolm(formula = LSOA_map$cnt_AED~LSOA_map$ovr_50_ + LSOA_map$fml_prp + 
-                      LSOA_map$avg_dpr +  LSOA_map$workday_population_density + 
-                      LSOA_map$bd_gh_p, data = LSOA_map, listw=A2, family="CAR")
+car.out <- spautolm(formula = LSOA_map$cnt_AED~LSOA_map$ovr_50_ +
+                       LSOA_map$workday_population_density + 
+                      LSOA_map$bd_gh_p, data = LSOA_map, listw=A, family="CAR")
 LSOA_map$F3 <- fitted(car.out)
 plot(LSOA_map["F3"], main="Fitted data from CAR model", lwd=0.001)
 
