@@ -78,6 +78,23 @@ ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
           aes(fill = workday_population_density))
 
+### Population density ###
+
+LSOA_pop_density <- read_excel("data/LSOA_pop_density.xlsx", 
+                               sheet = "Mid-2022 to mid-2024 LSOA", 
+                               range = "A4:K50000", col_types = c("skip", 
+                                                                  "skip", "text", "skip", "numeric", 
+                                                                  "numeric", "numeric", "skip", "skip", 
+                                                                  "skip", "skip"))
+colnames(LSOA_pop_density)[4] <- "2024_population_density"
+colnames(LSOA_pop_density)[1] <- "Lower layer Super Output Areas Code"
+LSOA_map <- left_join(LSOA_map, LSOA_pop_density, 
+                      by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
+ggplot() +
+  geom_sf(data = LSOA_map, lwd=0.001, 
+          aes(fill = `2024_population_density`))+
+  scale_fill_steps(n.breaks = 8, , limits = c(0,50000))
+
 
 ### Household deprivation ###
 
