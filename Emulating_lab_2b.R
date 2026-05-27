@@ -115,5 +115,27 @@ car.out2 <- spautolm(formula = LSOA_map$cnt_AED~LSOA_map$ovr_50_ + LSOA_map$fml_
                        LSOA_map$bd_gh_p, data = LSOA_map, listw=A2, family="CAR")
 coef(car.out2)
 LSOA_map$F2 <- fitted(car.out2)
-plot(LSOA_map["F2"], main="Fitted data from CAR mowdel", lwd=0.001)
+plot(LSOA_map["F2"], main="Fitted data from CAR model 2", lwd=0.001)
+
+car.out.test = car.out2
+coef(car.out.test)
+car.out.test$fit$coefficients[2] = 0
+car.out.test$fit$coefficients[3] = 0
+car.out.test$fit$coefficients[6] = 0
+
+LSOA_map$F_test <- fitted(car.out.test)
+plot(LSOA_map["F_test"], main="Fitted data from CAR model Tes", lwd=0.001)
+
+LSOA_map$F2_removed <- fitted(car.out2) - LSOA_map$avg_dpr
+plot(LSOA_map["F2_removed"], main="Fitted data from CAR model Tes", lwd=0.001)
+
+# seting to 0 is just not including it ? 
+car.out3 <- spautolm(formula = LSOA_map$cnt_AED~LSOA_map$fml_prp + 
+                       LSOA_map$`2024_p_`+ offset(LSOA_map$avg_dpr) +
+                       LSOA_map$workday_population_density + 
+                       LSOA_map$bd_gh_p, data = LSOA_map, listw=A2, family="CAR")
+coef(car.out3)
+car.out3$fit$coefficients[2]=0
+LSOA_map$F3 <- fitted(car.out3)
+plot(LSOA_map["F3"], main="Fitted data from CAR model 3", lwd=0.001)
 
