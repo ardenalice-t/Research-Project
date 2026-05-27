@@ -1,6 +1,7 @@
 library(sf)
 library(spatialreg)
 library(ggplot2)
+library(spdep)
 
 # Reading the map file
 LSOA_map <- read_sf("data/LSOA_map-pop_wd_hd_aed.shp")
@@ -139,3 +140,22 @@ car.out3$fit$coefficients[2]=0
 LSOA_map$F3 <- fitted(car.out3)
 plot(LSOA_map["F3"], main="Fitted data from CAR model 3", lwd=0.001)
 
+car.out.removal <- spautolm(formula = LSOA_map$cnt_AED~LSOA_map$ovr_50_ + 
+                              LSOA_map$population_density+ LSOA_map$fml_prp + 
+                              LSOA_map$avg_dpr +  LSOA_map$workday_population_density + 
+                              LSOA_map$bd_gh_p, data = LSOA_map, listw=A, family="CAR")
+car.out.removal$fit$coefficients[5]
+LSOA_map$F2<- fitted(car.out.removal)
+LSOA_map$F2_removed <- fitted(car.out.removal) - (car.out.removal$fit$coefficients[5] * LSOA_map$avg_dpr)
+plot(LSOA_map["F2_removed"], main="Fitted data from CAR model Removal", lwd=0.001)
+plot(LSOA_map["F2"], main="Fitted data from CAR model", lwd=0.001)
+
+ggplot() +
+  geom_sf(data = LSOA_map, lwd=0.001, 
+          aes(fill = F2_removed)) +
+  scale_fill_steps(n.breaks = 8, limits = c(0,5))
+
+ggplot() +
+  geom_sf(data = LSOA_map, lwd=0.001, 
+          aes(fill = F2)) +
+  scale_fill_steps(n.breaks = 8, limits = c(0,5))
