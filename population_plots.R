@@ -4,6 +4,7 @@ library(ggplot2)
 library(ggmap)
 library(dplyr)
 library(spdep)
+library(readxl)
 
 # Reading the map files
 OA_map <- read_sf("maps/LDN_OA")
@@ -17,28 +18,28 @@ LSOA_pop_data <- read_csv("data/Sex-GH-Age_LSOA.csv")
 # Getting just the data for each area 
 OA_observations <- OA_pop_data %>% 
   group_by(`Output Areas Code`)%>% 
-  summarise(female_proportion = 
+  summarise(f_pr= 
               sum(Observation[`Sex (2 categories) Code`==1]) /
               sum(Observation),
-            over_50_proportion = 
+            over_50_pr = 
               sum(Observation[(`Age (6 categories) Code`==5) | 
                                 (`Age (6 categories) Code`==6)]) /
               sum(Observation),
-            bad_gh_proportion = 
+            bad_gh_pr = 
               sum(Observation[`General health (4 categories) Code`==3]) /
               sum(Observation)
             )
 
 LSOA_observations <- LSOA_pop_data %>% 
   group_by(`Lower layer Super Output Areas Code`)%>% 
-  summarise(female_proportion = 
+  summarise(f_pr = 
               sum(Observation[`Sex (2 categories) Code`==1]) /
               sum(Observation),
-            over_50_proportion = 
+            over_50_pr = 
               sum(Observation[(`Age (6 categories) Code`==5) | 
                                 (`Age (6 categories) Code`==6)]) /
               sum(Observation),
-            bad_gh_proportion = 
+            bad_gh_pr = 
               sum(Observation[`General health (4 categories) Code`==3]) /
               sum(Observation))
 
@@ -53,30 +54,30 @@ LSOA_map <- left_join(LSOA_map, LSOA_observations,
 # Plotting the maps 
 ggplot() +
   geom_sf(data = OA_map, lwd=0.001, 
-          aes(fill = female_proportion))
+          aes(fill = f_pr))
 
 ggplot() +
   geom_sf(data = LSOA_map,lwd=0.001, 
-          aes(fill = female_proportion))
+          aes(fill = female_pr))
 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = over_50_proportion))
+          aes(fill = over_50_pr))
 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = bad_gh_proportion))
+          aes(fill = bad_gh_pr))
 
 
 ### Workday population density ###
 
 LSOA_WD_data <- read_csv("data/Workday_population_lsoa.csv")
-colnames(LSOA_WD_data)[3] <- "workday_population_density"
+colnames(LSOA_WD_data)[3] <- "WD_pop_den"
 LSOA_map <- left_join(LSOA_map, LSOA_WD_data, 
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = workday_population_density))
+          aes(fill = WD_pop_den))
 
 ### Population density ###
 
@@ -86,13 +87,13 @@ LSOA_pop_density <- read_excel("data/LSOA_pop_density.xlsx",
                                                                   "skip", "text", "skip", "numeric", 
                                                                   "numeric", "numeric", "skip", "skip", 
                                                                   "skip", "skip"))
-colnames(LSOA_pop_density)[4] <- "2024_population_density"
+colnames(LSOA_pop_density)[4] <- "pop_den"
 colnames(LSOA_pop_density)[1] <- "Lower layer Super Output Areas Code"
 LSOA_map <- left_join(LSOA_map, LSOA_pop_density, 
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = `2024_population_density`))+
+          aes(fill = `pop_den`))+
   scale_fill_steps(n.breaks = 8, , limits = c(0,50000))
 
 
@@ -106,7 +107,7 @@ LSOA_HD_data <- mutate(LSOA_HD_data,
 
 LSOA_HD_data <- LSOA_HD_data %>% 
   group_by(`Lower layer Super Output Areas Code`)%>% 
-  summarise(avg_deprivation = 
+  summarise(house_depr = 
               sum(Observation * `Household deprivation (6 categories) Code`, na.rm = TRUE) /
               sum(Observation, na.rm = TRUE))
 
@@ -114,7 +115,7 @@ LSOA_map <- left_join(LSOA_map, LSOA_HD_data,
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = avg_deprivation))
+          aes(fill = house_depr))
 
 
 ### AED locations ###
@@ -146,4 +147,4 @@ ggplot() +
 
 
 # Saving the result
-write_sf(LSOA_map, "data/LSOA_map-pop_wd_hd_aed.shp")
+write_sf(LSOA_map, "data/LSOA_map-pop_wd_hd_aed.shp", )
