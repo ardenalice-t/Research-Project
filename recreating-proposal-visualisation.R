@@ -11,7 +11,7 @@ ldn_boundary_map = st_transform(ldn_boundary_map, crs=4283)
 # 4283 universal, 27700 uk
 
 # Getting the borough maps
-ldn_boroughs <- st_transform(ldn, crs=st_crs(ldn_boundary_map))
+ldn_boroughs <- st_transform(lnd, crs=st_crs(ldn_boundary_map))
 
 
 # Importing the AED data
@@ -37,8 +37,29 @@ ggplot() + # initializes a ggplot object, layers added
   geom_sf(data = ldn_boroughs) +
   geom_sf(data=ldn_AED_data_sf,
           size = 0.005,alpha = 0.5,
-          aes(colour = 'AED')) +
+          colour="red") +
   xlab("Longitude") +
   ylab("Latitude") +
+  ggtitle(label = "AED locations") + 
   coord_sf(crs = st_crs(ldn_boundary_map))
+
+
+# Just plotting the central boroughs
+central_boroughs <- ldn_boroughs[grepl('City of London' , ldn_boroughs$NAME) | grepl('Westminster' , ldn_boroughs$NAME) ,]
+
+# Finding the AED coordinates that intersect London
+central_idx <- c(st_contains(central_boroughs, AED_data_sf)[[1]], st_contains(central_boroughs, AED_data_sf)[[2]])
+central_AED_data_sf <-AED_data_sf[central_idx,]
+
+
+# Plotting London AEDs
+ggplot() + # initializes a ggplot object, layers added
+  geom_sf(data = central_boroughs) +
+  geom_sf(data=central_AED_data_sf,
+          size = 0.005,alpha = 0.5,
+          colour="red") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  ggtitle(label = "AED locations") + 
+  coord_sf(crs = st_crs(central_boroughs))
 
