@@ -54,7 +54,10 @@ LSOA_map <- left_join(LSOA_map, LSOA_observations,
 # Plotting the maps 
 ggplot() +
   geom_sf(data = OA_map, lwd=0.001, 
-          aes(fill = f_pr))
+          aes(fill = f_pr)) + 
+  scale_fill_continuous(name = "Female Ratio") + 
+  ggtitle(label = "Female Ratio by Output Area")
+
 
 ggplot() +
   geom_sf(data = LSOA_map,lwd=0.001, 
@@ -62,11 +65,15 @@ ggplot() +
 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = over_50_pr))
+          aes(fill = over_50_pr)) + 
+  scale_fill_continuous(name = "Proportion") + 
+  ggtitle(label = "Over 50s by LSOA")
 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = bad_gh_pr))
+          aes(fill = bad_gh_pr)) + 
+  scale_fill_continuous(name = "Proportion") + 
+  ggtitle(label = "'Poor' General Health by LSOA")
 
 
 ### Workday population density ###
@@ -77,7 +84,12 @@ LSOA_map <- left_join(LSOA_map, LSOA_WD_data,
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = WD_pop_den))
+          aes(fill = WD_pop_den)) + 
+  scale_fill_continuous(name = "People per square km") + 
+  ggtitle(label = "Workday Population Density by LSOA") #+ 
+  #theme(legend.position = "bottom", legend.key.size = unit(1, "cm"))
+
+plot(LSOA_map["WD_pop_den"])
 
 ### Population density ###
 
@@ -91,10 +103,16 @@ colnames(LSOA_pop_density)[4] <- "pop_den"
 colnames(LSOA_pop_density)[1] <- "Lower layer Super Output Areas Code"
 LSOA_map <- left_join(LSOA_map, LSOA_pop_density, 
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
+
+max_relevant_val = 50000 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = `pop_den`))+
-  scale_fill_steps(n.breaks = 8, , limits = c(0,50000))
+          aes(fill = `pop_den`)) +
+  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
+                   na.value = "light blue",
+                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
+                   name = "People per square km") + 
+  ggtitle(label = "Population Density by LSOA")
 
 
 ### Household deprivation ###
@@ -115,7 +133,9 @@ LSOA_map <- left_join(LSOA_map, LSOA_HD_data,
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = house_depr))
+          aes(fill = house_depr-1)) +
+  scale_fill_continuous(limits = c(0, 1.5), name = "Number of \ndeprived dimensions") + 
+  ggtitle(label = "Average Household Deprivation by LSOA")
 
 
 ### AED locations ###
@@ -140,10 +160,17 @@ LSOA_map <- left_join(LSOA_map, count_aeds,
 # changing any NA to 0
 LSOA_map <- mutate(LSOA_map, "count_AEDs" = ifelse(is.na(count_AEDs), 0, count_AEDs))
 
+max_relevant_val = 10
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
           aes(fill = count_AEDs)) +
-  scale_fill_steps(n.breaks = 8, limits = c(0,30))
+  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
+                   na.value = "light blue",
+                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
+                   name = "Number of AEDs") + 
+  ggtitle(label = "Number of AEDs by LSOA")
+
+hist(LSOA_map$count_AEDs, breaks = 500, xlim = c(0, 15))
 
 
 # Saving the result
