@@ -1,4 +1,4 @@
-# Barchart to see the number of defibrilators by deprivation 
+# Barchart to see the number of defibrillators by deprivation 
 
 library(sf)
 
