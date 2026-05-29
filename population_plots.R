@@ -54,9 +54,9 @@ LSOA_map <- left_join(LSOA_map, LSOA_observations,
 # Plotting the maps 
 ggplot() +
   geom_sf(data = OA_map, lwd=0.001, 
-          aes(fill = f_pr)) + 
-  scale_fill_continuous(name = "Female Ratio") + 
-  ggtitle(label = "Female Ratio by Output Area")
+          aes(fill = 1-f_pr)) + 
+  scale_fill_continuous(name = "Proportion") + 
+  ggtitle(label = "Male Proportion by Output Area")
 
 
 ggplot() +
