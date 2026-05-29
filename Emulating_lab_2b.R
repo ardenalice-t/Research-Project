@@ -153,6 +153,8 @@ LSOA_map$F4 <- fitted(car.out4)
 
 coef(car.out4)
 
+plot(LSOA_map["F4_removed"])
+
 max_relevant_val = 10
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
@@ -245,9 +247,9 @@ car.out.removal <- spautolm(formula = LSOA_map$cnt_AED~LSOA_map$ovr_50_ +
                               LSOA_map$population_density+ LSOA_map$fml_prp + 
                               LSOA_map$avg_dpr +  LSOA_map$workday_population_density + 
                               LSOA_map$bd_gh_p, data = LSOA_map, listw=A, family="CAR")
-car.out$fit$coefficients[7]
-LSOA_map$F2<- fitted(car.out.removal)
-LSOA_map$F1_removed <- fitted(car.out) - (car.out$fit$coefficients[7] * LSOA_map$hos_dpr)
+car.out4$fit$coefficients[7]
+LSOA_map$F2<- fitted(car.out4.removal)
+LSOA_map$F4_removed <- fitted(car.out4) - (car.out4$fit$coefficients[7] * LSOA_map$hos_dpr)
 plot(LSOA_map["F1_removed"], main="Fitted data from CAR model Removal", lwd=0.001)
 plot(LSOA_map["F2"], main="Fitted data from CAR model", lwd=0.001)
 
