@@ -14,7 +14,7 @@ plot(LSOA_map$geometry)
 lsoa_nb <- poly2nb(LSOA_map,queen=FALSE)
 plot.nb(lsoa_nb, LSOA_map$geometry, add = TRUE, col='red')  
 
-plot(LSOA_map["ovr_50_"])
+plot(LSOA_map["f_pr"])
 
 colnames(LSOA_map)[13] <- "workday_population_density"
 colnames(LSOA_map)[15] <- "population"
@@ -31,6 +31,7 @@ car.out <- spautolm(formula = LSOA_map$cnt_AED ~
                       LSOA_map$hos_dpr, 
                     data = LSOA_map, listw=A, family="CAR")
 coef(car.out)
+summary(car.out)
 table(coef(car.out))
 mean(LSOA_map$AreSqKm)
 var(LSOA_map$AreSqKm)
