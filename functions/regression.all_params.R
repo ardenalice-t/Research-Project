@@ -12,7 +12,7 @@
 #' car.out <- regression.all_params(A)
 #' 
 regression.all_params <- function(neighbour_matrix, map = LSOA_map){
-  stopifnot(class(neighbour_matrix) %in% c("matrix"))
+  stopifnot(class(neighbour_matrix) %in% c("matrix", "listw", "nb"))
   
   car.out <- spautolm(formula = map$cnt_AED ~
                         map$f_pr + 
