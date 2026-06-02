@@ -1,12 +1,30 @@
+
+# Packages ----------------------------------------------------------------
+
 library(sf)
 library(spatialreg)
 library(ggplot2)
 library(spdep)
 
+
+# Reading Files -----------------------------------------------------------
+
 # Reading the map file
 LSOA_map <- read_sf("data/LSOA_map-pop_wd_hd_aed.shp")
 # created in population_plots.R
 
+colnames(LSOA_map)[13] <- "workday_population_density"
+colnames(LSOA_map)[15] <- "population"
+colnames(LSOA_map)[16] <- "population_density"
+LSOA_map$workday_population <- LSOA_map$workday_population_density * LSOA_map$AreSqKm
+
+
+# Functions ---------------------------------------------------------------
+
+source("functions/regression.all_params.R")
+source("functions/plotRegression.R")
+
+# Regression - 1 depth ----------------------------------------------------
 
 ### REGRESSION ###
 plot(LSOA_map$geometry)
@@ -16,20 +34,9 @@ plot.nb(lsoa_nb, LSOA_map$geometry, add = TRUE, col='red')
 
 plot(LSOA_map["f_pr"])
 
-colnames(LSOA_map)[13] <- "workday_population_density"
-colnames(LSOA_map)[15] <- "population"
-colnames(LSOA_map)[16] <- "population_density"
-LSOA_map$workday_population <- LSOA_map$workday_population_density * LSOA_map$AreSqKm
-
 A <- nb2listw(poly2nb(LSOA_map), style="B")
-car.out <- spautolm(formula = LSOA_map$cnt_AED ~
-                      LSOA_map$f_pr + 
-                      LSOA_map$ovr_50_ + 
-                      LSOA_map$bd_gh_p +
-                      LSOA_map$workday_population+ 
-                      LSOA_map$population + 
-                      LSOA_map$hos_dpr, 
-                    data = LSOA_map, listw=A, family="CAR")
+car.out <- regression.all_params(A)
+
 coef(car.out)
 summary(car.out)
 table(coef(car.out))
@@ -43,17 +50,7 @@ plot(LSOA_map["F1R"], main="Residuals")
 
 
 # Plots
-
-max_relevant_val = 30
-ggplot() +
-  geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = F1)) +
-  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
-                   limit = c(0,10000),
-                   na.value = "light blue",
-                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
-                   name = "Number of AEDs") + 
-  ggtitle(label = "AEDs using CAR model (n=1)")
+plotRegresssion("F1", "AEDs using CAR model (n=1)", max_relevant_val = 30)
 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
@@ -68,6 +65,9 @@ ggplot() +
                    high = "blue")
 
 
+
+# Regression - 2 depth ----------------------------------------------------
+
 # Using 2 neighbors deep 
 
 n.neighbors = 2
@@ -75,28 +75,14 @@ n.neighbors = 2
 lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A2 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
-car.out2 <- spautolm(formula = LSOA_map$cnt_AED ~
-                       LSOA_map$f_pr + 
-                       LSOA_map$ovr_50_ + 
-                       LSOA_map$bd_gh_p +
-                       LSOA_map$workday_population+ 
-                       LSOA_map$population + 
-                       LSOA_map$hos_dpr,  
-                    data = LSOA_map, listw=A2, family="CAR")
+car.out2 <- regression.all_params(A2)
+
 LSOA_map$F2 <- fitted(car.out2)
 
 coef(car.out2)
 
+plotRegresssion("F2", "AEDs using CAR model (n=2)", max_relevant_val = 30)
 max_relevant_val = 10
-ggplot() +
-  geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = F2)) +
-  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
-                   limit = c(0,10000),
-                   na.value = "light blue",
-                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
-                   name = "Number of AEDs") + 
-  ggtitle(label = "AEDs using CAR model (n=2)")
 
 plot(LSOA_map["F1"], main="Fitted data from CAR model", lwd=0.001)
 
@@ -104,73 +90,44 @@ LSOA_map$F2R<-fitted(car.out) - LSOA_map$cnt_AED
 plot(LSOA_map["F2R"], main="Change")
 
 
-## 3 Neighbors
+# Regression - 3 depth ----------------------------------------------------
 
 n.neighbors = 3
 
 lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A3 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
-car.out3 <- spautolm(formula = LSOA_map$cnt_AED ~
-                       LSOA_map$f_pr + 
-                       LSOA_map$ovr_50_ + 
-                       LSOA_map$bd_gh_p +
-                       LSOA_map$workday_population+ 
-                       LSOA_map$population + 
-                       LSOA_map$hos_dpr,  
-                     data = LSOA_map, listw=A3, family="CAR")
+car.out3 <- regression.all_params(A3)
 LSOA_map$F3 <- fitted(car.out3)
 
 coef(car.out3)
 
-max_relevant_val = 10
-ggplot() +
-  geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = F3)) +
-  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
-                   limit = c(0,10000),
-                   na.value = "light blue",
-                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
-                   name = "Number of AEDs") + 
-  ggtitle(label = "AEDs using CAR model (n=3)")
+plotRegresssion("F3", "AEDs using CAR model (n=3)", max_relevant_val = 10)
 
 
-## 4 Neighbors
+
+# Regression - 4 depth ----------------------------------------------------
 
 n.neighbors = 4
 
 lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A4 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
-car.out4 <- spautolm(formula = LSOA_map$cnt_AED ~
-                       LSOA_map$f_pr + 
-                       LSOA_map$ovr_50_ + 
-                       LSOA_map$bd_gh_p +
-                       LSOA_map$workday_population+ 
-                       LSOA_map$population + 
-                       LSOA_map$hos_dpr, 
-                     data = LSOA_map, listw=A4, family="CAR")
+car.out4 <- regression.all_params(A4)
 LSOA_map$F4 <- fitted(car.out4)
 
 coef(car.out4)
 
 plot(LSOA_map["F4_removed"])
 
-max_relevant_val = 10
-ggplot() +
-  geom_sf(data = LSOA_map, lwd=0.001, 
-          aes(fill = F4)) +
-  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
-                   limit = c(0,10000),
-                   na.value = "light blue",
-                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
-                   name = "Number of AEDs") + 
-  ggtitle(label = "AEDs using CAR model (n=4)")
+plotRegresssion("F4", "AEDs using CAR model (n=4)", max_relevant_val = 10)
 
 LSOA_map$F1 == LSOA_map$F4
 
 
-### Removing City of London ###
+
+# Removing City of London -------------------------------------------------
+
 LSOA_map <- read_sf("data/LSOA_map-pop_wd_hd_aed.shp")
 colnames(LSOA_map)[13] <- "workday_population_density"
 
@@ -207,7 +164,9 @@ ggplot() +
   scale_fill_steps(n.breaks = 8, limits = c(0,3))
 
 
-### TESTING 
+
+# Testing Detrending ------------------------------------------------------
+
 # tryung to set a coef to 0
 coef(car.out2)
 coef(car.out2)[2]
@@ -263,3 +222,34 @@ ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
           aes(fill = F2)) +
   scale_fill_steps(n.breaks = 8, limits = c(0,5))
+
+
+# Neighbours based on Distance --------------------------------------------
+
+### Maps based on distance neighbors 
+
+# k nearest neighbours from centers - makes into neighbours list class nb
+knearest.nb <- knn2nb(knearneigh(st_centroid(LSOA_map, longlat=TRUE), k=2), 
+                      sym=TRUE)
+
+# neighbors found from distance from centers - anything within 1km 
+distance.nb <- dnearneigh(st_centroid(LSOA_map), d1=0, d2=1)
+distance.A <- nb2listw(distance.nb,style="B", zero.policy = TRUE)
+
+distance.out = regression.all_params(distance.A)
+
+summary(distance.out)
+coef(distance.out) 
+LSOA_map$F.distance = fitted(distance.out)
+
+plotRegresssion("F.distance", "Example title")
+plotRegresssion("F.distance", "Example title", max_relevant_val = 30)
+
+
+# optional plot - lab2b
+plot(st_geometry(LSOA_map),border="darkgray", lwd=0.1)
+plot.nb(distance.nb,st_geometry(LSOA_map),
+        add=TRUE,col="purple", lwd = 0.1, points=FALSE)
+
+
+
