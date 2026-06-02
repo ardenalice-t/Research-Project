@@ -11,7 +11,7 @@
 #' A <- nb2listw(poly2nb(LSOA_map), style="B")
 #' car.out <- regression.all_params(A)
 #' 
-regression.all_params <- function(neighbour_matrix, map = LSOA_map){
+regression.allParams <- function(neighbour_matrix, map = LSOA_map){
   stopifnot(class(neighbour_matrix) %in% c("matrix", "listw", "nb"))
   
   car.out <- spautolm(formula = map$cnt_AED ~

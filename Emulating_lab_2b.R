@@ -21,7 +21,7 @@ LSOA_map$workday_population <- LSOA_map$workday_population_density * LSOA_map$Ar
 
 # Functions ---------------------------------------------------------------
 
-source("functions/regression.all_params.R")
+source("functions/regression.allParams.R")
 source("functions/plotRegression.R")
 
 # Regression - 1 depth ----------------------------------------------------
@@ -35,7 +35,7 @@ plot.nb(lsoa_nb, LSOA_map$geometry, add = TRUE, col='red')
 plot(LSOA_map["f_pr"])
 
 A <- nb2listw(poly2nb(LSOA_map), style="B")
-car.out <- regression.all_params(A)
+car.out <- regression.allParams(A)
 
 coef(car.out)
 summary(car.out)
@@ -75,7 +75,7 @@ n.neighbors = 2
 lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A2 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
-car.out2 <- regression.all_params(A2)
+car.out2 <- regression.allParams(A2)
 
 LSOA_map$F2 <- fitted(car.out2)
 
@@ -97,7 +97,7 @@ n.neighbors = 3
 lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A3 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
-car.out3 <- regression.all_params(A3)
+car.out3 <- regression.allParams(A3)
 LSOA_map$F3 <- fitted(car.out3)
 
 coef(car.out3)
@@ -113,7 +113,7 @@ n.neighbors = 4
 lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A4 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
-car.out4 <- regression.all_params(A4)
+car.out4 <- regression.allParams(A4)
 LSOA_map$F4 <- fitted(car.out4)
 
 coef(car.out4)
@@ -236,7 +236,7 @@ knearest.nb <- knn2nb(knearneigh(st_centroid(LSOA_map, longlat=TRUE), k=2),
 distance.nb <- dnearneigh(st_centroid(LSOA_map), d1=0, d2=1)
 distance.A <- nb2listw(distance.nb,style="B", zero.policy = TRUE)
 
-distance.out = regression.all_params(distance.A)
+distance.out = regression.allParams(distance.A)
 
 summary(distance.out)
 coef(distance.out) 
