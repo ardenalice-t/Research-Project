@@ -20,7 +20,7 @@
 plotRegresssion <- function(relevant_col, title, 
                             max_relevant_val = NULL, num_bins = 6,
                             legend_title = "Number of AEDs", map = LSOA_map){
-  stopifnot(class(relevant_col) %in% c("string", "char"))
+  stopifnot(class(relevant_col) %in% c("string", "character"))
   stopifnot(class(max_relevant_val) %in% c("NULL", "numeric"))
   
   if(is.null(max_relevant_val)){
