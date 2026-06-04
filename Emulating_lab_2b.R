@@ -50,7 +50,7 @@ plot(LSOA_map["F1R"], main="Residuals")
 
 
 # Plots
-plotRegresssion("F1", "AEDs using CAR model (n=1)", max_relevant_val = 30)
+plotRegresssion("F1", "AEDs using CAR model (n=1)", max_relevant_val = 10)
 
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0.001, 
@@ -76,19 +76,14 @@ lsoa_nb_lag <- nblag(lsoa_nb, maxlag = n.neighbors)
 A2 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
 car.out2 <- regression.allParams(A2)
-
 LSOA_map$F2 <- fitted(car.out2)
 
 coef(car.out2)
 
 plotRegresssion("F2", "AEDs using CAR model (n=2)", max_relevant_val = 30)
-max_relevant_val = 10
-
-plot(LSOA_map["F1"], main="Fitted data from CAR model", lwd=0.001)
 
 LSOA_map$F2R<-fitted(car.out) - LSOA_map$cnt_AED
 plot(LSOA_map["F2R"], main="Change")
-
 
 # Regression - 3 depth ----------------------------------------------------
 
@@ -99,11 +94,9 @@ A3 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
 car.out3 <- regression.allParams(A3)
 LSOA_map$F3 <- fitted(car.out3)
-
 coef(car.out3)
 
 plotRegresssion("F3", "AEDs using CAR model (n=3)", max_relevant_val = 10)
-
 
 
 # Regression - 4 depth ----------------------------------------------------
@@ -115,15 +108,9 @@ A4 = nb2listw(nblag_cumul(lsoa_nb_lag),style="B")
 
 car.out4 <- regression.allParams(A4)
 LSOA_map$F4 <- fitted(car.out4)
-
 coef(car.out4)
 
-plot(LSOA_map["F4_removed"])
-
 plotRegresssion("F4", "AEDs using CAR model (n=4)", max_relevant_val = 10)
-
-LSOA_map$F1 == LSOA_map$F4
-
 
 
 # Removing City of London -------------------------------------------------
@@ -244,6 +231,7 @@ LSOA_map$F.distance = fitted(distance.out)
 
 plotRegresssion("F.distance", "Example title")
 plotRegresssion("F.distance", "Example title", max_relevant_val = 30)
+plotRegresssion("F.distance", "Example title", max_relevant_val = 30)
 
 
 # optional plot - lab2b
@@ -252,4 +240,44 @@ plot.nb(distance.nb,st_geometry(LSOA_map),
         add=TRUE,col="purple", lwd = 0.1, points=FALSE)
 
 
+# Cross Terms Testing  ----------------------------------------------------
 
+lsoa_nb <- poly2nb(LSOA_map,queen=TRUE)
+A <- nb2listw(poly2nb(LSOA_map), style="B")
+
+cross.out <- spautolm(formula = LSOA_map$cnt_AED ~
+                      LSOA_map$f_pr * LSOA_map$ovr_50_ + 
+                      LSOA_map$bd_gh_p +
+                      LSOA_map$workday_population +
+                      LSOA_map$population * LSOA_map$bd_gh_p, 
+                    data = LSOA_map, listw=A , family="CAR")
+
+## tried to do a cross term of workday pop and pop but too correlated 
+cov(LSOA_map$workday_population, LSOA_map$workday_population)
+
+summary(cross.out)
+coef(cross.out)
+
+LSOA_map$Fcross <- fitted(cross.out)
+
+plotRegresssion("Fcross", "AEDs using CAR model (n=1), Cross term", max_relevant_val = 10)
+plotRegresssion("F1", "AEDs using CAR model (n=1)", max_relevant_val = 10)
+
+
+cross.squared <- spautolm(formula = LSOA_map$cnt_AED ~
+                        LSOA_map$f_pr + LSOA_map$ovr_50_ + 
+                        I(LSOA_map$ovr_50_^2) + 
+                        LSOA_map$bd_gh_p +
+                        LSOA_map$workday_population+LSOA_map$population, 
+                      data = LSOA_map, listw=A , family="CAR")
+
+summary(cross.squared)
+summary(cross.out)
+coef(cross.squared)
+
+LSOA_map$Fcross_squared <- fitted(cross.squared)
+
+plotRegresssion("Fcross_squared", "AEDs using CAR model (n=1), Cross term", max_relevant_val = 10)
+plotRegresssion("F1", "AEDs using CAR model (n=1)", max_relevant_val = 10)
+
+var(LSOA_map$cnt_AED)
