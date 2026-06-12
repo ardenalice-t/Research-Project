@@ -138,6 +138,10 @@ ggplot() +
   ggtitle(label = "Average Household Deprivation by LSOA")
 
 
+### Care Homes - Not finished ###
+
+LSOA_CH_data <- read_csv("data/care homes - lower output layer.csv", skip = 7)
+
 ### AED locations ###
 
 aed_map <- read_sf("data/LDN_AEDs")
