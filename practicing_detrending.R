@@ -67,6 +67,7 @@ car.AED_pop <- spautolm(formula = LSOA_map$cnt_AED ~
                         data = LSOA_map, listw=A, family="CAR")
 
 coef(car.AED_pop)
+summary(car.AED_pop)
 
 LSOA_map$AED_pop <- fitted(car.AED_pop)
 plot(LSOA_map["AED_pop"], 
@@ -82,6 +83,7 @@ car.AED_pop.detrend <- spautolm(formula = LSOA_map$AED_dpr.R ~
                         data = LSOA_map, listw=A, family="CAR")
 
 coef(car.AED_pop.detrend)
+summary(car.AED_pop.detrend)
 
 LSOA_map$AED_pop.detrend <- fitted(car.AED_pop.detrend)
 plot(LSOA_map["AED_pop.detrend"], 
@@ -96,6 +98,20 @@ car.AED_pop.detrend.test <- spautolm(formula = LSOA_map$AED_dpr.R ~
 
 coef(car.AED_pop.detrend.test)
 summary(car.AED_pop.detrend.test)
+
+car.AED_pop.detrend.test2 <- spautolm(formula = LSOA_map$cnt_AED ~
+                                       LSOA_map$population + LSOA_map$hos_dpr, 
+                                     data = LSOA_map, listw=A, family="CAR")
+
+coef(car.AED_pop.detrend.test2)
+summary(car.AED_pop.detrend.test2)
+
+LSOA_map$AED_pop.detrend.test2 <- fitted(car.AED_pop.detrend.test2)
+LSOA_map$AED_pop.detrend.test <- fitted(car.AED_pop.detrend.test)
+
+plotRegresssion("AED_pop.detrend.test", "'Detrended' Model", max_relevant_val = 10)
+plotRegresssion("AED_pop.detrend.test2", "Base Model", max_relevant_val = 10)
+
 
 car.AED.detrend.test2 <- spautolm(formula = LSOA_map$AED_dpr.R2 ~
                                     LSOA_map$pop_dpr.R + LSOA_map$hos_dpr, 

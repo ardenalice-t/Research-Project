@@ -242,14 +242,18 @@ plot.nb(distance.nb,st_geometry(LSOA_map),
 
 # Cross Terms Testing  ----------------------------------------------------
 
-lsoa_nb <- poly2nb(LSOA_map,queen=TRUE)
+lsoa_nb <- poly2nb(LSOA_map,queen=FALSE)
 A <- nb2listw(poly2nb(LSOA_map), style="B")
 
 cross.out <- spautolm(formula = LSOA_map$cnt_AED ~
                       LSOA_map$f_pr * LSOA_map$ovr_50_ + 
                       LSOA_map$bd_gh_p +
+                      LSOA_map$hos_dpr + 
                       LSOA_map$workday_population +
-                      LSOA_map$population * LSOA_map$bd_gh_p, 
+                      LSOA_map$population + 
+                      LSOA_map$population:LSOA_map$bd_gh_p +
+                      LSOA_map$population:LSOA_map$f_pr +
+                      LSOA_map$population:LSOA_map$ovr_50_, 
                     data = LSOA_map, listw=A , family="CAR")
 
 ## tried to do a cross term of workday pop and pop but too correlated 
