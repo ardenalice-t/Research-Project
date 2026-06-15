@@ -1,5 +1,14 @@
 # Making grid
 
+# Packages ----------------------------------------------------------------
+
+library(ggplot2)
+library(sf)
+library(ggmap)
+library(dplyr)
+library(spdep)
+library(readxl)
+
 
 # Reading Maps ------------------------------------------------------------
 
@@ -24,7 +33,7 @@ make_ldn_grid = function(cell_meters){
   return(st_grid[london_idx])
 }
 
-ldn_grid = make_ldn_grid(cell_meters = 300)
+ldn_grid = make_ldn_grid(cell_meters = 500)
 
 LSOA_map <- st_transform(LSOA_map, crs=st_crs(ldn_grid))
 
@@ -184,5 +193,4 @@ plot(ldn_grid_values["count_sports"])
 
 # Saving ------------------------------------------------------------------
 
-write_sf(ldn_grid_values, "data/grid_map.shp", )
-
+write_sf(ldn_grid_values, "data/grid_map_500.shp", )
