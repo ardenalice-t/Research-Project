@@ -127,3 +127,16 @@ car.rmWD.scaled <- spautolm(formula = LDN_grid_map$cnt_AED ~
                            data = LDN_grid_map, listw=A, family="CAR")
 coef(car.rmWD.scaled)
 summary(car.rmWD.scaled)
+
+car.rmPD.scaled <- spautolm(formula = LDN_grid_map$cnt_AED ~
+                             LDN_grid_map$f_pr.scaled + 
+                             LDN_grid_map$ovr_50_.scaled + 
+                             LDN_grid_map$bd_gh_p.scaled +
+                             LDN_grid_map$cnt_spr.scaled +
+                             LDN_grid_map$workday_popden.scaled+ 
+                             LDN_grid_map$hos_dpr.scaled, 
+                           data = LDN_grid_map, listw=A, family="CAR")
+coef(car.rmPD.scaled)
+summary(car.rmPD.scaled)
+
+
