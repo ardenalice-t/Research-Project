@@ -33,14 +33,14 @@ write_sf(ldn_AED_data_sf, "data/LDN_AEDs/ldn_AEDs_map.shp")
 
 
 # Plotting London AEDs
-ggplot() + # initializes a ggplot object, layers added
+ggplot() + 
   geom_sf(data = ldn_boroughs) +
   geom_sf(data=ldn_AED_data_sf,
-          size = 0.005,alpha = 0.5,
+          size = 0.0001,alpha = 0.5,
           colour="red") +
   xlab("Longitude") +
   ylab("Latitude") +
-  ggtitle(label = "AED locations") + 
+  #ggtitle(label = "Existing AED locations") + 
   coord_sf(crs = st_crs(ldn_boundary_map))
 
 
