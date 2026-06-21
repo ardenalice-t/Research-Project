@@ -9,7 +9,11 @@ library(spdep)
 # Reading Files -----------------------------------------------------------
 
 # Reading the map file
-LDN_grid_map <- read_sf("data/grid_map_500.shp")
+LDN_grid_map.500 <- read_sf("data/grid_map_500.shp")
+LDN_grid_map.400 <- read_sf("data/grid_map_400.shp")
+LDN_grid_map.300 <- read_sf("data/grid_map_300.shp")
+
+LDN_grid_map = LDN_grid_map.300
 # created in gridding_data
 
 colnames(LDN_grid_map)[4] <- "workday_popden"
@@ -32,6 +36,13 @@ LDN_grid_map$cnt_spr.scaled = scale(LDN_grid_map$cnt_spr)
 LDN_grid_map$workday_popden.scaled = scale(LDN_grid_map$workday_popden)
 LDN_grid_map$popden.scaled = scale(LDN_grid_map$popden)
 LDN_grid_map$hos_dpr.scaled = scale(LDN_grid_map$hos_dpr)
+
+
+# Neighbours --------------------------------------------------------------
+
+# neighbors found from distance from centers - anything within 1km 
+distance.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=1)
+A <- nb2listw(distance.nb,style="B", zero.policy = TRUE)
 
 
 # Regression - 1 depth ----------------------------------------------------
@@ -67,12 +78,47 @@ car.out.scaled <- spautolm(formula = LDN_grid_map$cnt_AED ~
 coef(car.out.scaled)
 summary(car.out.scaled)
 
+(coef(car.out.scaled)[8]* var(LDN_grid_map$hos_dpr)) + mean(LDN_grid_map$hos_dpr)
+
+save(car.out.scaled, file = "models/300_grid.full_scaled_regression")
+
 LDN_grid_map$F1_scaled = fitted(car.out.scaled)
 plot(LDN_grid_map["F1_scaled"])
 
 plotRegresssion("F1_scaled", "AEDs using CAR model (n=1)", max_relevant_val = 6,
                 map = LDN_grid_map)
 
+
+#checking a linear model
+
+lm.out.scaled <- lm(formula = LDN_grid_map$cnt_AED ~
+                             LDN_grid_map$f_pr.scaled + 
+                             LDN_grid_map$ovr_50_.scaled + 
+                             LDN_grid_map$bd_gh_p.scaled +
+                             LDN_grid_map$cnt_spr.scaled +
+                             LDN_grid_map$workday_popden.scaled+ 
+                             LDN_grid_map$popden.scaled + 
+                             LDN_grid_map$hos_dpr.scaled, 
+                           data = LDN_grid_map,)
+summary(lm.out.scaled)
+
+# seeing if residualds are autocorrelated
+# using morans I test
+
+#https://www.youtube.com/watch?v=myqXQ1QBbOc
+
+spdep::lm.morantest(
+  model = lm.out.scaled,
+  listw = A
+)
+# very small p value so yes autocorrelated - there is global autocorrealtion
+
+
+summary(car.out)
+summary(car.rmPD.scaled)
+summary(car.rmWD.scaled)
+
+# both increase the AIC compared to car out so maybe just stick with this one 
 
 
 # Detrending Deprivation --------------------------------------------------
