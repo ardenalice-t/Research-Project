@@ -25,7 +25,7 @@ LSOA_map$workday_population <- LSOA_map$workday_population_density * LSOA_map$Ar
 
 # with ldn boundary map
 
-cell_meters = 500
+cell_meters = 300
 
 make_ldn_grid = function(cell_meters){
   st_grid <- st_make_grid(x=ldn_boundary_map, cellsize=cell_meters)
@@ -33,7 +33,7 @@ make_ldn_grid = function(cell_meters){
   return(st_grid[london_idx])
 }
 
-ldn_grid = make_ldn_grid(cell_meters = 500)
+ldn_grid = make_ldn_grid(cell_meters = 400)
 
 LSOA_map <- st_transform(LSOA_map, crs=st_crs(ldn_grid))
 
@@ -49,7 +49,7 @@ ldn_grid_values = st_interpolate_aw(
   to = ldn_grid,
   extensive=FALSE # mean is maintained 
 )
-plot(ldn_grid_values["hos_dpr"])
+plot(ldn_grid_values["workday_population_density"])
 
 # Raster Object Grids -----------------------------------------------------
 
@@ -124,7 +124,7 @@ sf_use_s2(FALSE)
 # joining the AEDs to the grid square they are within
 aed_to_grid <- st_join(aed_map, ldn_grid_values, join = st_within)
 
-# counting AEDs in each LSOA
+# counting AEDs in each square
 count_aeds <- count(as_tibble(aed_to_grid), ID, name="count_AEDs")
 
 # Plotting resulting map
@@ -193,4 +193,4 @@ plot(ldn_grid_values["count_sports"])
 
 # Saving ------------------------------------------------------------------
 
-write_sf(ldn_grid_values, "data/grid_map_500.shp", )
+write_sf(ldn_grid_values, "data/grid_map_400.shp", )
