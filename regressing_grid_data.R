@@ -44,11 +44,13 @@ LDN_grid_map$hos_dpr.scaled = scale(LDN_grid_map$hos_dpr)
 distance.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=1)
 A <- nb2listw(distance.nb,style="B", zero.policy = TRUE)
 
+image(nb2mat(distance.nb,zero.policy=TRUE, style="B"))
+
 
 # Regression - 1 depth ----------------------------------------------------
 
-grid_nb <- poly2nb(LDN_grid_map,queen=TRUE)
-A <- nb2listw(poly2nb(LDN_grid_map), style="B")
+#grid_nb <- poly2nb(LDN_grid_map,queen=TRUE)
+#A <- nb2listw(poly2nb(LDN_grid_map), style="B")
 
 car.out <- spautolm(formula = LDN_grid_map$cnt_AED ~
                       LDN_grid_map$f_pr + 
@@ -77,16 +79,24 @@ car.out.scaled <- spautolm(formula = LDN_grid_map$cnt_AED ~
                     data = LDN_grid_map, listw=A, family="CAR")
 coef(car.out.scaled)
 summary(car.out.scaled)
+print(lm.out.scaled)
+var()
+var(residuals(car.out.scaled))
 
 (coef(car.out.scaled)[8]* var(LDN_grid_map$hos_dpr)) + mean(LDN_grid_map$hos_dpr)
 
-save(car.out.scaled, file = "models/300_grid.full_scaled_regression")
+# Saving the model
+saveRDS(car.out.scaled, file = "models/300_grid.full_scaled_regression.rds")
+car.out.scaled = readRDS("models/300_grid.full_scaled_regression.rds")
 
 LDN_grid_map$F1_scaled = fitted(car.out.scaled)
 plot(LDN_grid_map["F1_scaled"])
+median(LDN_grid_map$F1_scaled)
 
-plotRegresssion("F1_scaled", "AEDs using CAR model (n=1)", max_relevant_val = 6,
+plotRegresssion("F1_scaled", "", num_bins=7, max_relevant_val = 3,legend_title = "AED 'demand'",
                 map = LDN_grid_map)
+
+length(LDN_grid_map$f_pr)
 
 
 #checking a linear model
@@ -113,12 +123,28 @@ spdep::lm.morantest(
 )
 # very small p value so yes autocorrelated - there is global autocorrealtion
 
+image(A)
 
 summary(car.out)
 summary(car.rmPD.scaled)
 summary(car.rmWD.scaled)
 
 # both increase the AIC compared to car out so maybe just stick with this one 
+
+car.out.testmethod <- spautolm(formula = LDN_grid_map$cnt_AED ~
+                             LDN_grid_map$f_pr.scaled + 
+                             LDN_grid_map$ovr_50_.scaled + 
+                             LDN_grid_map$bd_gh_p.scaled +
+                             LDN_grid_map$cnt_spr.scaled +
+                             LDN_grid_map$workday_popden.scaled+ 
+                             LDN_grid_map$popden.scaled + 
+                             LDN_grid_map$hos_dpr.scaled, 
+                           data = LDN_grid_map, listw=A, family="CAR",
+                         method = "Matrix_J")
+
+loaded_model1 = readRDS("models/300_grid_linearmodel.rds")
+saveRDS(lm.out.scaled, file = "models/300_grid_linearmodel.rds")
+summary(loaded_model)
 
 
 # Detrending Deprivation --------------------------------------------------
