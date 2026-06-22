@@ -27,12 +27,14 @@ plotRegresssion <- function(relevant_col, title,
     plot(map[relevant_col], main=title, lwd=0.001)}
   else{
     ggplot() +
-      geom_sf(data = map, lwd=0.001, 
+      geom_sf(data = map, lwd=0.0001, 
               aes(fill = .data[[relevant_col]])) +
       scale_fill_steps(breaks = seq(0, max_relevant_val, length = num_bins),
                        limit = c(0,10000),
                        na.value = "light blue",
                        rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
                        name = legend_title) + 
+      xlab("Longitude") +
+      ylab("Latitude") +
       ggtitle(label = title)}
 }
