@@ -96,7 +96,8 @@ median(LDN_grid_map$F1_scaled)
 plotRegresssion("F1_scaled", "", num_bins=7, max_relevant_val = 3,legend_title = "AED 'demand'",
                 map = LDN_grid_map)
 
-length(LDN_grid_map$f_pr)
+# Saving
+write_sf(LDN_grid_map, "data/300grid_regressed.shp", )
 
 
 #checking a linear model
