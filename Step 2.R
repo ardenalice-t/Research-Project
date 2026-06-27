@@ -290,7 +290,7 @@ solution_to_plot = function(A_mat, facility_solution, facility_object){
 
 # Real Data ---------------------------------------------------------------
 # trying with real data 
-london_grid_centers = st_centroid(LDN_grid_map[3100:3200,])
+london_grid_centers = st_centroid(LDN_grid_map[3000:3003,])
 london_grid_centers = sf_to_latlong_matix(london_grid_centers)
 
 facility_cpp <- as.matrix(london_grid_centers[ , c("lat", "long")])
@@ -307,24 +307,26 @@ user_id_list <- 1:nrow(london_grid_centers)
 Nusers <- nrow(coverage_check) # number of = number of users
 Nfacility <- ncol(coverage_check) # number of locations
 
-demand_vector = LDN_grid_map[3100:3200,]$F1_mutated
-AUGMENTED_user_vec2  <- c(rep(0, Nfacility), demand_vector) 
+demand_vector = LDN_grid_map[3000:3003,]$F1_mutated
+AUGMENTED_user_vec  <- c(rep(0, Nfacility), rep(1, Nusers)) 
 
 location_vec <- c(rep(1, Nfacility), rep(0, Nusers)) # one for each of the locations
 # so that the chosen locaitons have to add to the correct amount
 
 # this is a line to optimise with cpp
 Ain <- cbind(-coverage_check, diag(demand_vector)) # user - the locations that cover it, has to => 0
-bin <- matrix(rep(0, Nusers), ncol = 1) # 0 to make sure the covered locations - the number of aeds is 0? 
+bin <- matrix(rep(0, Nusers), ncol = 1) # 0 to make sure the covered locations - the number of aeds is 0? \
+Cin <- cbind(matrix(0, Nfacility,  Nusers), diag(1,ncol = Nfacility,nrow=Nusers))
+demand_matrix <- matrix(demand_vector,ncol=1)
 
 # matrix of constraint coefs, one row per constraint, one col per variable
-constraint_matrix <- rbind(Ain, location_vec)
-rhs_matrix <- rbind(bin, 100) # number to add 100
-constraint_directions <- c(rep("<=", Nusers), "==")
+constraint_matrix <- rbind(Ain, location_vec, Cin)
+rhs_matrix <- rbind(bin, 3, demand_matrix) # number to add 100
+constraint_directions <- c(rep("<=", Nusers), "==")           
 
 
 solution <- lpSolve::lp(direction = "max",
-                        objective.in = AUGMENTED_user_vec2, # objective_in,
+                        objective.in = AUGMENTED_user_vec, # objective_in,
                         const.mat = constraint_matrix,
                         const.dir = constraint_directions,
                         const.rhs = rhs_matrix, # constraint_rhs,
@@ -336,7 +338,8 @@ solution_vector =solution$solution
 
 facility_solution <- solution_vector[1:Nfacility]
 
-mutated_facility_solution <-pmin(facility_solution, 1)
+mutated_facility_solution <-round(facility_solution)
 
 solution_to_plot(A_mat=coverage_check, facility_solution = mutated_facility_solution, 
                  facility_object = london_grid_centers)
+
