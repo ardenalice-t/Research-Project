@@ -343,3 +343,128 @@ mutated_facility_solution <-round(facility_solution)
 solution_to_plot(A_mat=coverage_check, facility_solution = mutated_facility_solution, 
                  facility_object = london_grid_centers)
 
+
+# Arden's Version of LP ---------------------------------------------------
+
+truncated_grid = LDN_grid_map[3000:3029,]
+
+# Making a list of grid centre coordinates
+london_grid_centers <- st_centroid(truncated_grid)
+london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
+london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
+Nlocations <- nrow(london_grid_centers)
+
+# Creating a coverage matrix 
+# true if the distance satisifes the distance cut off condition. 
+coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
+                                    user = london_grid_centers,
+                                    distance_cutoff = 300)
+
+# Making objective function
+objective.fn = c(rep(0, Nlocations*2), rep(1, Nlocations))
+
+# Making constraint matrix 
+
+location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
+
+grid_cap = diag(1, nrow = Nlocations)
+grid_cap = cbind(grid_cap, location_zero_matrix, location_zero_matrix)
+grid_cap.dir = rep("<=", Nlocations)
+grid_cap.rhs = rep(3, Nlocations)
+
+total_cap = rep(1, Nlocations)
+total_cap = c(total_cap, rep(0, Nlocations*2))
+total_cap.dir = rep("=", 1)
+total_cap.rhs = 3 # CHANGE TO CHANGE TOTAL
+
+demand = diag(1, nrow = Nlocations)
+demand = cbind(location_zero_matrix, demand,location_zero_matrix)
+demand.dir = rep("=", Nlocations)
+demand.rhs = truncated_grid$F1_scld
+
+fulfilled.constraint <- cbind(coverage_matrix, 
+                              diag(-1,nrow = Nlocations), 
+                              diag(999,nrow = Nlocations))
+fulfilled.constraint.dir <- rep(">=", Nlocations)
+fulfilled.constraint.rhs = rep(0, Nlocations)
+
+constraint.mat = rbind(grid_cap, total_cap,demand, fulfilled.constraint)
+constraint.dir = c(grid_cap.dir, total_cap.dir, demand.dir, fulfilled.constraint.dir)
+constraint.rhs = c(grid_cap.rhs, total_cap.rhs, demand.rhs, fulfilled.constraint.rhs )
+
+lp.solution <- lp(direction= "min",
+                  objective.fn, 
+                  constraint.mat,
+                  constraint.dir,
+                  constraint.rhs,
+                  binary.vec = ((2*Nlocations)+1):(3*Nlocations),
+                  int.vec = 1:Nlocations
+)
+
+solution_vector <- lp.solution$solution
+facility_solution <- solution_vector[1:Nlocations]
+facility_solution
+
+# this maximises the number of places with their demand covered and 
+# not the amount of demand covered
+
+# Arden's 2nd Version of LP ---------------------------------------------------
+
+
+truncated_grid = LDN_grid_map[3000:3013,]
+
+# Making a list of grid centre coordinates
+london_grid_centers <- st_centroid(truncated_grid)
+london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
+london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
+Nlocations <- nrow(london_grid_centers)
+
+# Creating a coverage matrix 
+# true if the distance satisifes the distance cut off condition. 
+coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
+                                     user = london_grid_centers,
+                                     distance_cutoff = 300)
+
+# Making objective function
+objective.fn = c(rep(0, Nlocations*2), rep(1, Nlocations))
+
+# Making constraint matrix 
+
+location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
+
+grid_cap = diag(1, nrow = Nlocations)
+grid_cap = cbind(grid_cap, location_zero_matrix, location_zero_matrix)
+grid_cap.dir = rep("<=", Nlocations)
+grid_cap.rhs = rep(3, Nlocations)
+
+total_cap = rep(1, Nlocations)
+total_cap = c(total_cap, rep(0, Nlocations*2))
+total_cap.dir = rep("=", 1)
+total_cap.rhs = 3 # CHANGE TO CHANGE TOTAL
+
+demand = diag(1, nrow = Nlocations)
+demand = cbind(location_zero_matrix, demand,location_zero_matrix)
+demand.dir = rep("=", Nlocations)
+demand.rhs = truncated_grid$F1_scld
+
+fulfilled.constraint <- cbind(-coverage_matrix, 
+                              diag(+1,nrow = Nlocations), 
+                              diag(-1,nrow = Nlocations))
+fulfilled.constraint.dir <- rep("<=", Nlocations)
+fulfilled.constraint.rhs = rep(0, Nlocations)
+
+constraint.mat = rbind(grid_cap, total_cap,demand, fulfilled.constraint)
+constraint.dir = c(grid_cap.dir, total_cap.dir, demand.dir, fulfilled.constraint.dir)
+constraint.rhs = c(grid_cap.rhs, total_cap.rhs, demand.rhs, fulfilled.constraint.rhs )
+
+lp.solution <- lp(direction= "min",
+                  objective.fn, 
+                  constraint.mat,
+                  constraint.dir,
+                  constraint.rhs,
+                  int.vec = 1:Nlocations
+)
+
+solution_vector <- lp.solution$solution
+facility_solution <- solution_vector[1:Nlocations]
+facility_solution
