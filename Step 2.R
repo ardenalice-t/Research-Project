@@ -13,7 +13,7 @@ library(maxcovr) # for the custom function + cite for code adapted from
 ## Functions ---------------------------------------------------------------
 solution_to_plot = function(facility_solution, facility_object, map, 
                             num_bins=6, max_relevant_val=3, legend_title="demand"){
-  chosen_facilities = facility_object$geometry[facility_solution==1]
+  chosen_facilities = facility_object$geometry[facility_solution>0]
   ggplot() + 
     geom_sf(data = ldn_boundary_map) +
     geom_sf(data = map, lwd=0.0001, 
@@ -665,7 +665,7 @@ location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
 total_cap = rep(1, Nlocations)
 total_cap = c(total_cap, rep(0, Nlocations))
 total_cap.dir = rep("<=", 1)
-total_cap.rhs = 1  # CHANGE TO CHANGE TOTAL
+total_cap.rhs = 100  # CHANGE TO CHANGE TOTAL
 
 fulfilled.constraint <- cbind(coverage_matrix, 
                               diag(1,nrow = Nlocations))
@@ -685,10 +685,37 @@ lp.solution <- lp(direction= "min",
                   constraint.rhs,
                   int.vec = 1:Nlocations
 )
+
 fac_sol = process_lp_result(lp.solution, print_sol_vec = FALSE, map = truncated_grid)
 
+max(fac_sol)
 
 solution_to_plot(fac_sol, st_centroid(truncated_grid), map=truncated_grid)
+
+# maybe try. rounding all demand to e.g. 4dp so that it is maybe quicker / takes less storage
+
+library(readr)
+import_solution = function(filename){
+  solution <- read_csv(filename, 
+                        col_names = FALSE)
+  solution_facsol = as.list(solution[1:Nlocations,])$X1
+  initial_demand <- truncated_grid$F1_mutated
+  remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations)]
+  pc_demand_covered = (sum(initial_demand) - sum(remaining_demand)) / sum(initial_demand) * 100
+  print(paste("% Demand covered: ", pc_demand_covered))
+  solution_to_plot(solution_facsol, st_centroid(truncated_grid), map=truncated_grid)
+  return (solution)
+}
+solution3 <- read_csv("matrix_exports/solution3.csv", 
+                      col_names = FALSE)
+solution3_facsol = as.list(solution3[1:Nlocations,])$X1
+
+solution_to_plot(solution3_facsol, st_centroid(truncated_grid), map=truncated_grid)
+
+solution3 = import_solution("matrix_exports/solution3.csv")
+sum(solution3)
+
+
 
 # Other Solvers -----------------------------------------------------------
 library(Rglpk)
