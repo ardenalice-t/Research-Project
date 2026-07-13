@@ -11,24 +11,51 @@ library(dplyr) # for mutate
 library(maxcovr) # for the custom function + cite for code adapted from
 
 ## Functions ---------------------------------------------------------------
-solution_to_plot = function(facility_solution, facility_object, map, 
+solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE,
                             num_bins=6, max_relevant_val=3, legend_title="demand"){
-  chosen_facilities = facility_object$geometry[facility_solution>0]
-  ggplot() + 
-    geom_sf(data = ldn_boundary_map) +
-    geom_sf(data = map, lwd=0.0001, 
-            aes(fill = F1_scld)) +
-    scale_fill_steps(breaks = seq(0, max_relevant_val, length = num_bins),
-                     limit = c(0,10000),
-                     na.value = "light blue",
-                     rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
-                     name = legend_title) + 
-    geom_sf(data=chosen_facilities,
-            size = 0.0001,alpha = 0.5,
-            colour="red") +
-    xlab("Longitude") +
-    ylab("Latitude") +
-    coord_sf(crs = st_crs(ldn_boundary_map))
+  chosen_1facilities = facility_object$geometry[facility_solution==1]
+  chosen_2facilities = facility_object$geometry[facility_solution==2]
+  chosen_3facilities = facility_object$geometry[facility_solution==3]
+  if (demand==TRUE){
+    ggplot() + 
+      geom_sf(data = ldn_boundary_map) +
+      geom_sf(data = map, lwd=0.0001, 
+              aes(fill = F1_scld)) +
+      scale_fill_steps(breaks = seq(0, max_relevant_val, length = num_bins),
+                       limit = c(0,10000),
+                       na.value = "light blue",
+                       rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
+                       name = legend_title) + 
+      geom_sf(data=chosen_1facilities,
+              size = 0.0001,alpha = 0.5,
+              colour="yellow") +
+      geom_sf(data=chosen_2facilities,
+              size = 0.0001,alpha = 0.5,
+              colour="orange") +
+      geom_sf(data=chosen_3facilities,
+              size = 0.0001,alpha = 0.5,
+              colour="red") +
+      xlab("Longitude") +
+      ylab("Latitude") +
+      coord_sf(crs = st_crs(ldn_boundary_map))
+  }
+  else{
+    ggplot() + 
+      geom_sf(data = ldn_boundary_map) +
+      geom_sf(data=chosen_1facilities,
+              size = 0.0001,alpha = 0.5,
+              colour="yellow") +
+      geom_sf(data=chosen_2facilities,
+              size = 0.0001,alpha = 0.5,
+              colour="orange") +
+      geom_sf(data=chosen_3facilities,
+              size = 0.0001,alpha = 0.5,
+              colour="red") +
+      xlab("Longitude") +
+      ylab("Latitude") +
+      coord_sf(crs = st_crs(ldn_boundary_map))
+  }
+  
 }
 
 process_lp_result = function(lp_sol, map, print_sol_vec=FALSE){
@@ -652,7 +679,7 @@ Nlocations <- nrow(london_grid_centers)
 # true if the distance satisifes the distance cut off condition. 
 coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
                                      user = london_grid_centers,
-                                     distance_cutoff = 300)
+                                     distance_cutoff = 100)
 
 # Making objective function
 objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
@@ -700,20 +727,22 @@ import_solution = function(filename){
                         col_names = FALSE)
   solution_facsol = as.list(solution[1:Nlocations,])$X1
   initial_demand <- truncated_grid$F1_mutated
-  remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations)]
+  remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations),]
   pc_demand_covered = (sum(initial_demand) - sum(remaining_demand)) / sum(initial_demand) * 100
   print(paste("% Demand covered: ", pc_demand_covered))
   solution_to_plot(solution_facsol, st_centroid(truncated_grid), map=truncated_grid)
   return (solution)
 }
-solution3 <- read_csv("matrix_exports/solution3.csv", 
+solution_solocov <- read_csv("matrix_exports/solution_solocoverage.csv", 
                       col_names = FALSE)
-solution3_facsol = as.list(solution3[1:Nlocations,])$X1
+solution_solocov = as.list(solution_solocov[1:Nlocations,])$X1
 
-solution_to_plot(solution3_facsol, st_centroid(truncated_grid), map=truncated_grid)
+solution_to_plot(solution_solocov, st_centroid(truncated_grid), map=truncated_grid, demand=FALSE)
 
 solution3 = import_solution("matrix_exports/solution3.csv")
 sum(solution3)
+
+solution_solocov = import_solution("matrix_exports/solution_solocoverage.csv")
 
 
 
