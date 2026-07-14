@@ -10,6 +10,7 @@ library(readr)
 
 library(sf) # for read_sf
 #library(sp)
+library(spData) # has the ldn dataset
 
 library(ggplot2) # for plotting
 #library(ggmap)
@@ -117,9 +118,124 @@ plot_descriptive_ldn(relevant_col = 'pop_den', title = "Population Density by LS
 ggplot() +
   geom_sf(data = LSOA_map, lwd=0, 
           aes(fill = pop_den)) + 
-  scale_fill_continuous(name = "Residents per Sq Km", labels = scales::label_number(), 
-                        palette = "viridis", transform = scales::log_trans(base = 10)) +
+  scale_fill_continuous(name = "Residents per \nSq Km", labels = scales::label_number(), 
+                        palette = "viridis", transform = scales::log10_trans()) +
   ggtitle(label = "Population Density by LSOA") +
   xlab("Longitude") +
   ylab("Latitude")
 
+
+LSOA_WD_popden_data <- read_csv("data/external_datasets/WD_pop_den.csv")
+
+LSOA_WD_popden_obs <- LSOA_WD_popden_data %>% 
+  group_by(`Lower layer Super Output Areas Code`)%>% 
+  summarise(WD_pop_den = sum(`Population Density`))
+
+# Joining with the LSOA map
+LSOA_map <- left_join(LSOA_map, LSOA_WD_popden_obs, 
+                      by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
+
+# Plotting 
+plot_descriptive_ldn(relevant_col = 'WD_pop_den', title = "Workday Population Density by LSOA", 
+                     legend_title = "Residents per Sq Km")
+
+# with exponential scale
+ggplot() +
+  geom_sf(data = LSOA_map, lwd=0, 
+          aes(fill = WD_pop_den)) + 
+  scale_fill_continuous(name = "Residents per \nSq Km", labels = scales::label_number(), 
+                        palette = "viridis", transform = scales::log10_trans(), limits = c(NA,100000)) +
+  ggtitle(label = "Workday Population Density by LSOA") +
+  xlab("Longitude") +
+  ylab("Latitude")
+
+# Plotting both side by side
+library(gridExtra)
+plot1 = ggplot() +
+    geom_sf(data = LSOA_map, lwd=0, 
+            aes(fill = pop_den)) + 
+    scale_fill_continuous(name = "Residents per \nSq Km", labels = scales::label_number(), 
+                          palette = "viridis", transform = scales::log10_trans()) +
+    ggtitle(label = "Population Density by LSOA") +
+  theme(legend.position="none")+
+    xlab("Longitude") +
+    ylab("Latitude")
+  
+plot2 = ggplot() +
+    geom_sf(data = LSOA_map, lwd=0, 
+            aes(fill = WD_pop_den)) + 
+    scale_fill_continuous(name = "Residents per \nSq Km", labels = scales::label_number(), 
+                          palette = "viridis", transform = scales::log10_trans(), limits = c(NA,100000)) +
+    theme(axis.text.y = element_blank(), 
+          axis.ticks.y = element_blank(), 
+          axis.title.y = element_blank(), aspect.ratio = 0.8) + 
+    ggtitle(label = "Workday Population Density by LSOA") +
+    xlab("Longitude") +
+    ylab("Latitude")
+
+
+grid.arrange(plot1, plot2, ncol=2, widths=c(0.355, 0.4) )
+
+
+# Saving LSOA Map ---------------------------------------------------------
+
+write_sf(LSOA_map, "data/LSOA_complete_map_July.shp", )
+
+## Adding AEDs -------------------------------------------------------------
+
+ldn_boundary_map <- read_sf("maps/gla")
+ldn_boundary_map = st_transform(ldn_boundary_map, crs=4283)
+
+AED_data <- read_excel("data/external_datasets/defibrillator_data July 2026.xlsx", 
+                                                       sheet = "data_extract_2026-07-01")
+# changing lat to be a numeric
+AED_data = transform(AED_data, lat = as.numeric(lat))
+AED_data_sf = st_as_sf(AED_data, coords = c("long", "lat"), 
+                       crs=st_crs(ldn_boundary_map))
+AED_data_sf = st_transform(AED_data_sf, crs=st_crs(ldn_boundary_map))
+
+# Finding the AED coordinates that intersect London
+london_idx <- st_contains(ldn_boundary_map, AED_data_sf)[[1]]
+ldn_AED_data_sf <-AED_data_sf[london_idx,]
+
+write_sf(ldn_AED_data_sf, "data/LDN_AEDs_July/ldn_AEDs_map.shp")
+
+ldn_boroughs <- st_transform(lnd, crs=st_crs(ldn_boundary_map))
+
+ggplot() + 
+  geom_sf(data = ldn_boroughs) +
+  geom_sf(data=ldn_AED_data_sf,
+          size = 0.0001,alpha = 0.5,
+          colour="red") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  ggtitle(label = "Existing AED locations") + 
+  coord_sf(crs = st_crs(ldn_boundary_map))
+
+# transforming to have the same crs 
+LSOA_map <- st_transform(LSOA_map, crs=st_crs(ldn_AED_data_sf))
+
+# required to use st_join st_within 
+sf_use_s2(FALSE)
+
+# joining the AEDs to the LSOA they are within
+aed_to_LSOA <- st_join(ldn_AED_data_sf, LSOA_map, join = st_within)
+
+# counting AEDs in each LSOA
+count_aeds <- count(as_tibble(aed_to_LSOA), LSOA21CD, name="count_AEDs")
+
+# Plotting resulting map
+LSOA_map <- left_join(LSOA_map, count_aeds, 
+                      by = c("LSOA21CD" = "LSOA21CD"))
+# changing any NA to 0
+LSOA_map <- mutate(LSOA_map, "count_AEDs" = ifelse(is.na(count_AEDs), 0, count_AEDs))
+
+# Plotting Result
+ggplot() +
+  geom_sf(data = LSOA_map, lwd=0, 
+          aes(fill = count_AEDs)) + 
+  scale_fill_continuous(name = "Number of AEDs", labels = scales::label_number(), 
+                        palette = "viridis", transform = scales::log10_trans()) +
+  ggtitle(label = "AED count by LSOA") +
+  xlab("Longitude") +
+  ylab("Latitude")
