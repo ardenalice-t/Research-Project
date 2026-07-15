@@ -26,7 +26,7 @@ plot_descriptive_ldn <- function(relevant_col,
                              map = LSOA_map, scale = scales::label_number()){
   # plotting
   ggplot() +
-    geom_sf(data = LSOA_map, lwd=0, 
+    geom_sf(data = map, lwd=0, 
             aes(fill = .data[[relevant_col]])) + 
     scale_fill_continuous(name = legend_title, labels = scale, 
                           palette = "viridis") +
@@ -180,6 +180,56 @@ grid.arrange(plot1, plot2, ncol=2, widths=c(0.355, 0.4) )
 # Saving LSOA Map ---------------------------------------------------------
 
 write_sf(LSOA_map, "data/LSOA_complete_map_July.shp", )
+
+
+# MSOA Map - Care Homes ---------------------------------------------------
+
+ldn_boroughs = 'Havering|Barking and Dagenham|Barnet|Bexley|Brent|Bromley|Camden|City of London|Croydon|Ealing|Enfield|Greenwich|Hackney|Hammersmith and Fulham|Haringey|Harrow|Hillingdon|Hounslow|Islington|Kensington and Chelsea|Kingston upon Thames|Lambeth|Lewisham|Merton|Newham|Redbridge|Richmond upon Thames|Southwark|Sutton|Tower Hamlets|Waltham Forest|Wandsworth|Westminster'
+
+# Creating london map of MSOAs
+full_MSOA_map <- read_sf("maps/Middle_layer_Super_Output_Areas_December_2021")
+
+full_MSOA_map <- select(full_MSOA_map, -c(MSOA21NMW, BNG_E, BNG_N))
+
+st_crs(ldn_boundary_map)
+
+# just taking the MSOA in London, using names
+LDN_MSOA_map = dplyr::filter(full_MSOA_map, grepl(ldn_boroughs, MSOA21NM))
+LDN_MSOA_map = dplyr::filter(LDN_MSOA_map, !grepl('Brentwood', MSOA21NM))
+
+
+# plotting to check 
+ggplot() + 
+  geom_sf(data = ldn_boundary_map, alpha=0.2, colour="blue") +
+  geom_sf(data = LDN_MSOA_map) + 
+  geom_sf(data = ldn_boundary_map, alpha=0.2, colour="red") 
+
+# saving
+write_sf(LDN_MSOA_map, "maps/LDN_MSOA/ldn_MSOA_map.shp")
+
+
+## Care Homes --------------------------------------------------------------
+
+MSOA_CH_data <- read_csv("data/external_datasets/UK care home.csv", 
+                         skip = 7)
+
+names(MSOA_CH_data) = c('MSOA', 'mnemonic', 'total', 'LA_CHwN', 'LA_CHwoN', 'O_CHwN', 'O_CHwoN')
+
+MSOA_CH_obs <- MSOA_CH_data %>% 
+  group_by(MSOA)%>% 
+  summarise(CH_pop = 
+              sum(LA_CHwN) + sum(LA_CHwoN) + sum(O_CHwN) + sum(O_CHwoN) )
+
+# Joining with the LSOA map
+LDN_MSOA_map <- left_join(LDN_MSOA_map, MSOA_CH_obs, 
+                      by = c("MSOA21NM" = "MSOA"))
+
+# Plotting 
+plot_descriptive_ldn(relevant_col = 'CH_pop', title = "Care Population by MSOA", 
+                     legend_title = "Number of people \nliving in Care Facilities", 
+                     map = LDN_MSOA_map)
+
+max(LDN_MSOA_map$CH_pop)
 
 ## Adding AEDs -------------------------------------------------------------
 
