@@ -179,7 +179,47 @@ grid.arrange(plot1, plot2, ncol=2, widths=c(0.355, 0.4) )
 
 # Saving LSOA Map ---------------------------------------------------------
 
-write_sf(LSOA_map, "data/LSOA_complete_map_July.shp", )
+write_sf(LSOA_map, "data/LSOA_complete_map_July.shp")
+
+
+# Gridding Data -----------------------------------------------------------
+
+ldn_boundary_map <- read_sf("maps/gla")
+
+LSOA_map <- read_sf("data/LSOA_complete_map_July.shp")
+
+names(LSOA_map)[10] = "avg_dpr"
+
+
+# Function to make a grid of london
+make_ldn_grid = function(cell_meters){
+  st_grid <- st_make_grid(x=ldn_boundary_map, cellsize=cell_meters)
+  london_idx <- st_intersects(ldn_boundary_map, st_grid)[[1]]
+  return(st_grid[london_idx])
+}
+
+ldn_300_grid = make_ldn_grid(300)
+ldn_400_grid = make_ldn_grid(400)
+ldn_500_grid = make_ldn_grid(500)
+
+LSOA_map <- st_transform(LSOA_map, crs=st_crs(ldn_300_grid))
+
+# with LSOA
+plot(LSOA_map$geometry)
+plot(ldn_grid, add=TRUE)
+
+# This is a grid of london but not sure how i would interpolate the values onto this
+
+numeric_columns = c("pc_f", "pc_50_p", "pc_65_p", "pc_bd_g", "avg_dpr", "pop_den", "WD_pp_d")
+ldn_grid_values = st_interpolate_aw(
+  LSOA_map[c("geometry", numeric_columns)],
+  to = ldn_500_grid,
+  extensive=FALSE # mean is maintained 
+)
+plot(ldn_grid_values["pop_den"])
+
+write_sf(ldn_grid_values, "data/grids/ldn_grid_values_500.shp")
+
 
 
 # MSOA Map - Care Homes ---------------------------------------------------
