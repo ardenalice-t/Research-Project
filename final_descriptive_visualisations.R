@@ -206,20 +206,100 @@ LSOA_map <- st_transform(LSOA_map, crs=st_crs(ldn_300_grid))
 
 # with LSOA
 plot(LSOA_map$geometry)
-plot(ldn_grid, add=TRUE)
-
-# This is a grid of london but not sure how i would interpolate the values onto this
+plot(ldn_300_grid, add=TRUE)
 
 numeric_columns = c("pc_f", "pc_50_p", "pc_65_p", "pc_bd_g", "avg_dpr", "pop_den", "WD_pp_d")
 ldn_grid_values = st_interpolate_aw(
   LSOA_map[c("geometry", numeric_columns)],
-  to = ldn_500_grid,
+  to = ldn_300_grid,
   extensive=FALSE # mean is maintained 
 )
 plot(ldn_grid_values["pop_den"])
 
-write_sf(ldn_grid_values, "data/grids/ldn_grid_values_500.shp")
 
+# Adding point data -------------------------------------------------------
+
+
+## Sportsgrounds -----------------------------------------------------------
+
+sportsgrounds_coords <-  read_csv("data/external_datasets/GIS_Active_Places_Power_Sites_7588440123797672972.csv", 
+                                  col_types = cols_only(objectid = col_guess(), 
+                                                        lat = col_guess(), long = col_guess()))
+
+sports_sf = st_as_sf(sportsgrounds_coords, coords = c("long", "lat"), 
+                       crs=st_crs(ldn_boundary_map))
+sports_sf = st_transform(sports_sf, crs=st_crs(ldn_boundary_map))
+
+# Finding the sports coordinates that intersect London
+london_idx <- st_contains(ldn_boundary_map, sports_sf)[[1]]
+sports_sf_ldn <-sports_sf[london_idx,]
+
+# plot to test output
+ggplot() + 
+  geom_sf(data = ldn_boundary_map) +
+  geom_sf(data=sports_sf_ldn,
+          size = 0.005,alpha = 0.5,
+          colour="red") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  ggtitle(label = "sports locations")
+
+write_sf(sports_sf_ldn, "data/sports/ldn_sportss_map.shp")
+
+# transforming to have the same crs 
+sportsground_sf <- st_transform(sports_sf_ldn, crs=st_crs(ldn_grid_values))
+
+# required to use st_join st_within 
+sf_use_s2(FALSE)
+
+# joining the sports to the grid square they are within
+sportsground_to_grid <- st_join(sportsground_sf, ldn_grid_values, join = st_within)
+
+# counting sports in each grid cell
+count_sportsground <- count(as_tibble(sportsground_to_grid), ID, name="count_sports")
+
+# Plotting resulting map
+ldn_grid_values <- left_join(ldn_grid_values, count_sportsground, 
+                             by = c("ID" = "ID"))
+# changing any NA to 0
+ldn_grid_values <- mutate(ldn_grid_values, "count_sports" = ifelse(is.na(count_sports), 0, count_sports))
+
+plot(ldn_grid_values["count_sports"])
+
+
+## AEDs --------------------------------------------------------------------
+
+aed_map <- read_sf("data/LDN_AEDs_July")
+# adding an ID column
+ldn_grid_values$ID <- seq.int(nrow(ldn_grid_values))
+
+# transforming to have the same crs 
+ldn_grid_values <- st_transform(ldn_grid_values, crs=st_crs(aed_map))
+
+# required to use st_join st_within 
+sf_use_s2(FALSE)
+
+# joining the AEDs to the grid square they are within
+aed_to_grid <- st_join(aed_map, ldn_grid_values, join = st_within)
+
+# counting AEDs in each square
+count_aeds <- count(as_tibble(aed_to_grid), ID, name="count_AEDs")
+
+# Plotting resulting map
+ldn_grid_values <- left_join(ldn_grid_values, count_aeds, 
+                             by = c("ID" = "ID"))
+# changing any NA to 0
+ldn_grid_values <- mutate(ldn_grid_values, "count_AEDs" = ifelse(is.na(count_AEDs), 0, count_AEDs))
+
+max_relevant_val = 10
+ggplot() +
+  geom_sf(data = ldn_grid_values, lwd=0.001, 
+          aes(fill = count_AEDs)) +
+  scale_fill_steps(breaks = seq(0, max_relevant_val, length = 6),
+                   na.value = "light blue",
+                   rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
+                   name = "Number of AEDs") + 
+  ggtitle(label = "Number of AEDs")
 
 
 # MSOA Map - Care Homes ---------------------------------------------------
