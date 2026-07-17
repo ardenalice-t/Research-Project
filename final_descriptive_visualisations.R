@@ -18,6 +18,8 @@ library(ggplot2) # for plotting
 library(dplyr) # for select
 #library(spdep)
 
+library(openairmaps) # for converting postcodes out
+
 
 # Functions ---------------------------------------------------------------
 
@@ -269,6 +271,24 @@ plot(ldn_grid_values["count_sports"])
 
 ## AEDs --------------------------------------------------------------------
 
+ldn_boundary_map <- read_sf("maps/gla")
+ldn_boundary_map = st_transform(ldn_boundary_map, crs=4283)
+
+AED_data <- read_excel("data/external_datasets/defibrillator_data July 2026.xlsx", 
+                       sheet = "data_extract_2026-07-01")
+# changing lat to be a numeric
+AED_data = transform(AED_data, lat = as.numeric(lat))
+AED_data_sf = st_as_sf(AED_data, coords = c("long", "lat"), 
+                       crs=st_crs(ldn_boundary_map))
+AED_data_sf = st_transform(AED_data_sf, crs=st_crs(ldn_boundary_map))
+
+# Finding the AED coordinates that intersect London
+london_idx <- st_contains(ldn_boundary_map, AED_data_sf)[[1]]
+ldn_AED_data_sf <-AED_data_sf[london_idx,]
+
+write_sf(ldn_AED_data_sf, "data/LDN_AEDs_July/ldn_AEDs_map.shp")
+
+
 aed_map <- read_sf("data/LDN_AEDs_July")
 # adding an ID column
 ldn_grid_values$ID <- seq.int(nrow(ldn_grid_values))
@@ -302,7 +322,108 @@ ggplot() +
   ggtitle(label = "Number of AEDs")
 
 
-# MSOA Map - Care Homes ---------------------------------------------------
+ggplot() +
+  geom_sf(data = ldn_grid_values, lwd=0, 
+          aes(fill = count_AEDs)) + 
+  scale_fill_continuous(name = "Residents per \nSq Km", labels = scales::label_number(), 
+                        palette = "viridis", transform = scales::log10_trans()) +
+  ggtitle(label = "Population Density by LSOA") +
+  xlab("Longitude") +
+  ylab("Latitude")
+
+
+## Care Homes --------------------------------------------------------------
+
+care_facility_data <- read_excel("data/external_datasets/Care Facilities invididual sites.xlsx", 
+                                 sheet = "Sheet1") %>% select(c("Name", "Postcode", "Region"))
+
+install.packages("openairmaps")
+library(openairmaps)
+
+library(n)
+
+care_lat = sapply(care_facility_data$Postcode, function(x){return(try(convertPostcode(x)$lat))})
+
+care_long = sapply(care_facility_data$Postcode, function(x){return(try(convertPostcode(x)$lng))})
+
+care_facility_data$lat = care_lat
+care_facility_data$long = care_long
+
+care_facility_data = transform(care_facility_data, lat = as.numeric(lat), long = as.numeric(long))
+
+HA7_3JE = c(51.624468, -0.340734)
+RM7_0XY = c(51.559053, 0.176637)
+#https://findthatpostcode.uk/postcodes/RM7%200XY.html
+
+
+care_facility_data[which(care_facility_data$Postcode == "HA7 3JE", arr.ind=TRUE),"lat"] =  HA7_3JE[1]
+care_facility_data[which(care_facility_data$Postcode == "HA7 3JE", arr.ind=TRUE),"long"] =  HA7_3JE[2]
+care_facility_data[which(care_facility_data$Postcode == "RM7 0XY", arr.ind=TRUE),"lat"] =  RM7_0XY[1]
+care_facility_data[which(care_facility_data$Postcode == "RM7 0XY", arr.ind=TRUE),"long"] =  RM7_0XY[2]
+
+sapply(care_facility_data, anyNA)
+
+care_facility_sf = st_as_sf(care_facility_data, coords = c("long", "lat"), 
+                       crs=st_crs(ldn_boundary_map))
+care_facility_sf = st_transform(care_facility_sf, crs=st_crs(ldn_boundary_map))
+
+plot(care_facility_sf)
+
+# transforming to have the same crs 
+ldn_grid_values <- st_transform(ldn_grid_values, crs=st_crs(care_facility_sf))
+
+# required to use st_join st_within 
+sf_use_s2(FALSE)
+
+# joining the AEDs to the grid square they are within
+CH_to_grid <- st_join(care_facility_sf, ldn_grid_values, join = st_within)
+
+# counting AEDs in each square
+count_CHs <- count(as_tibble(CH_to_grid), ID, name="count_CHs")
+
+# Plotting resulting map
+ldn_grid_values <- left_join(ldn_grid_values, count_CHs, 
+                             by = c("ID" = "ID"))
+# changing any NA to 0
+ldn_grid_values <- mutate(ldn_grid_values, "count_CHs" = ifelse(is.na(count_CHs), 0, count_CHs))
+
+plot(ldn_grid_values["count_CHs"])
+
+
+# Saving Grid -------------------------------------------------------------
+
+write_sf(ldn_grid_values, "data/grids/ldn_grid_300.shp")
+
+
+# Regression --------------------------------------------------------------
+
+LDN_grid_map = read_sf("data/grids/ldn_grid_300.shp")
+
+LDN_grid_map$pc_f.scaled = scale(LDN_grid_map$pc_f)
+LDN_grid_map$pc_50_p.scaled = scale(LDN_grid_map$pc_50_p)
+LDN_grid_map$pc_65_p.scaled = scale(LDN_grid_map$pc_65_p)
+LDN_grid_map$pc_bd_g.scaled = scale(LDN_grid_map$pc_bd_g)
+LDN_grid_map$avg_dpr.scaled = scale(LDN_grid_map$avg_dpr)
+LDN_grid_map$pop_den.scaled = scale(LDN_grid_map$pop_den)
+LDN_grid_map$WD_pp_d.scaled = scale(LDN_grid_map$WD_pp_d)
+LDN_grid_map$cnt_spr.scaled = scale(LDN_grid_map$cnt_spr)
+LDN_grid_map$cnt_CHs.scaled = scale(LDN_grid_map$cnt_CHs)
+
+plot(LDN_grid_map["avg_dpr.scaled"])
+
+
+library(spdep)
+# neighbors found from distance from centers - anything within 1km 
+distance.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=1)
+A <- nb2listw(distance.nb,style="B", zero.policy = TRUE)
+
+image(nb2mat(distance.nb,zero.policy=TRUE, style="B"))
+
+
+
+# RETIRED CODE ------------------------------------------------------------
+
+## MSOA Map - Care Homes ---------------------------------------------------
 
 ldn_boroughs = 'Havering|Barking and Dagenham|Barnet|Bexley|Brent|Bromley|Camden|City of London|Croydon|Ealing|Enfield|Greenwich|Hackney|Hammersmith and Fulham|Haringey|Harrow|Hillingdon|Hounslow|Islington|Kensington and Chelsea|Kingston upon Thames|Lambeth|Lewisham|Merton|Newham|Redbridge|Richmond upon Thames|Southwark|Sutton|Tower Hamlets|Waltham Forest|Wandsworth|Westminster'
 
@@ -328,7 +449,9 @@ ggplot() +
 write_sf(LDN_MSOA_map, "maps/LDN_MSOA/ldn_MSOA_map.shp")
 
 
-## Care Homes --------------------------------------------------------------
+
+
+## Care Homes RETIRED --------------------------------------------------------------
 
 MSOA_CH_data <- read_csv("data/external_datasets/UK care home.csv", 
                          skip = 7)
@@ -351,61 +474,3 @@ plot_descriptive_ldn(relevant_col = 'CH_pop', title = "Care Population by MSOA",
 
 max(LDN_MSOA_map$CH_pop)
 
-## Adding AEDs -------------------------------------------------------------
-
-ldn_boundary_map <- read_sf("maps/gla")
-ldn_boundary_map = st_transform(ldn_boundary_map, crs=4283)
-
-AED_data <- read_excel("data/external_datasets/defibrillator_data July 2026.xlsx", 
-                                                       sheet = "data_extract_2026-07-01")
-# changing lat to be a numeric
-AED_data = transform(AED_data, lat = as.numeric(lat))
-AED_data_sf = st_as_sf(AED_data, coords = c("long", "lat"), 
-                       crs=st_crs(ldn_boundary_map))
-AED_data_sf = st_transform(AED_data_sf, crs=st_crs(ldn_boundary_map))
-
-# Finding the AED coordinates that intersect London
-london_idx <- st_contains(ldn_boundary_map, AED_data_sf)[[1]]
-ldn_AED_data_sf <-AED_data_sf[london_idx,]
-
-write_sf(ldn_AED_data_sf, "data/LDN_AEDs_July/ldn_AEDs_map.shp")
-
-ldn_boroughs <- st_transform(lnd, crs=st_crs(ldn_boundary_map))
-
-ggplot() + 
-  geom_sf(data = ldn_boroughs) +
-  geom_sf(data=ldn_AED_data_sf,
-          size = 0.0001,alpha = 0.5,
-          colour="red") +
-  xlab("Longitude") +
-  ylab("Latitude") +
-  ggtitle(label = "Existing AED locations") + 
-  coord_sf(crs = st_crs(ldn_boundary_map))
-
-# transforming to have the same crs 
-LSOA_map <- st_transform(LSOA_map, crs=st_crs(ldn_AED_data_sf))
-
-# required to use st_join st_within 
-sf_use_s2(FALSE)
-
-# joining the AEDs to the LSOA they are within
-aed_to_LSOA <- st_join(ldn_AED_data_sf, LSOA_map, join = st_within)
-
-# counting AEDs in each LSOA
-count_aeds <- count(as_tibble(aed_to_LSOA), LSOA21CD, name="count_AEDs")
-
-# Plotting resulting map
-LSOA_map <- left_join(LSOA_map, count_aeds, 
-                      by = c("LSOA21CD" = "LSOA21CD"))
-# changing any NA to 0
-LSOA_map <- mutate(LSOA_map, "count_AEDs" = ifelse(is.na(count_AEDs), 0, count_AEDs))
-
-# Plotting Result
-ggplot() +
-  geom_sf(data = LSOA_map, lwd=0, 
-          aes(fill = count_AEDs)) + 
-  scale_fill_continuous(name = "Number of AEDs", labels = scales::label_number(), 
-                        palette = "viridis", transform = scales::log10_trans()) +
-  ggtitle(label = "AED count by LSOA") +
-  xlab("Longitude") +
-  ylab("Latitude")
