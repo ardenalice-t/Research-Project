@@ -1,0 +1,10 @@
+,X.model.name.,X.log.likelihood.,X.ML.residual.variable..sigma.squared..
+1,model name,log likelihood,ML residual variable (sigma squared)
+1,distance 0.5km,-28793.39825,0.86204571
+1,distance 0.5,-28793.39825,0.86204571
+1,distance 0.5,-28793.39825,0.86204571
+1,A.lag2,-28793.39825,0.859721097
+1,A.distance1km,-28793.39825,0.864853807
+1,A.nearest4,-28793.39825,0.865678496
+1,A.queen_shared_edge,-28793.39825,0.86204571
+,A.lag4,-28793.39825,0.888115252
