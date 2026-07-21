@@ -19,7 +19,7 @@ library(dplyr) # for select
 #library(spdep)
 
 library(openairmaps) # for converting postcodes out
-
+package.install
 
 # Functions ---------------------------------------------------------------
 
@@ -398,7 +398,13 @@ write_sf(ldn_grid_values, "data/grids/ldn_grid_300.shp")
 # Regression --------------------------------------------------------------
 
 LDN_grid_map = read_sf("data/grids/ldn_grid_300.shp")
+LDN_grid_map = read_sf("data/grids/ldn_grid_values_500.shp")
 
+
+## scaling -----------------------------------------------------------------
+
+
+# Rescaling all relevant variables
 LDN_grid_map$pc_f.scaled = scale(LDN_grid_map$pc_f)
 LDN_grid_map$pc_50_p.scaled = scale(LDN_grid_map$pc_50_p)
 LDN_grid_map$pc_65_p.scaled = scale(LDN_grid_map$pc_65_p)
@@ -411,15 +417,135 @@ LDN_grid_map$cnt_CHs.scaled = scale(LDN_grid_map$cnt_CHs)
 
 plot(LDN_grid_map["avg_dpr.scaled"])
 
+var(LDN_grid_map$pc_f) / mean (LDN_grid_map$pc_f)
+var(LDN_grid_map$pc_50_p) / mean (LDN_grid_map$pc_50_p)
+var(LDN_grid_map$pc_bd_g) / mean (LDN_grid_map$pc_bd_g)
+
+
+moran.test(LDN_grid_map$pc_f.scaled, A)
+
+
+## neighbours --------------------------------------------------------------
+
 
 library(spdep)
 # neighbors found from distance from centers - anything within 1km 
-distance.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=1)
-A <- nb2listw(distance.nb,style="B", zero.policy = TRUE)
+distance1km.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=1)
+A.distance1km <- nb2listw(distance1km.nb,style="B", zero.policy = TRUE)
+
+distance1.5km.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=1.5)
+A.distance1.5km <- nb2listw(distance1.5km.nb,style="B", zero.policy = TRUE)
+
+distance0.5km.nb <- dnearneigh(st_centroid(LDN_grid_map), d1=0, d2=0.5)
+A.distance0.5km <- nb2listw(distance0.5km.nb,style="B", zero.policy = TRUE)
+
+queen_shared_edge.nb <- poly2nb(LDN_grid_map,queen=TRUE)
+A.queen_shared_edge <- nb2listw(queen_shared_edge.nb,style="B", zero.policy = TRUE)
+
+rook_shared_edge.nb <- poly2nb(LDN_grid_map,queen=FALSE)
+A.rook_shared_edge <- nb2listw(rook_shared_edge.nb,style="B", zero.policy = TRUE)
+
+lag2.nb <- nblag(neighbours=queen_shared_edge.nb,maxlag=2)
+A.lag2 <- nb2listw(nblag_cumul(lag2.nb),style="B", zero.policy = TRUE)
+
+lag4.nb <- nblag(neighbours=queen_shared_edge.nb,maxlag=4)
+A.lag4 <- nb2listw(nblag_cumul(lag4.nb),style="B", zero.policy = TRUE)
+
+
+nearest4.nb <- knn2nb(knearneigh(st_centroid(LDN_grid_map),k=4), sym = TRUE)
+A.nearest4 <- nb2listw(nearest4.nb,style="B", zero.policy = TRUE)
+
+??knearneigh
+
 
 image(nb2mat(distance.nb,zero.policy=TRUE, style="B"))
 
 
+## regression --------------------------------------------------------------
+
+library(spatialreg)
+
+car.distance0.5km <- spautolm(formula = LDN_grid_map$cnt_AED ~
+                               LDN_grid_map$pc_f.scaled + 
+                               LDN_grid_map$pc_65_p.scaled +
+                              LDN_grid_map$pc_50_p.scaled + 
+                               LDN_grid_map$pc_bd_g.scaled +
+                               LDN_grid_map$avg_dpr.scaled +
+                               LDN_grid_map$pop_den.scaled+ 
+                               LDN_grid_map$WD_pp_d.scaled + 
+                               LDN_grid_map$cnt_spr.scaled +
+                               LDN_grid_map$cnt_CHs.scaled, 
+                           data = LDN_grid_map, listw=A.distance0.5km, family="CAR",
+                           method = "Matrix_J")
+
+test = summary(car.distance0.5km)
+test$parameters
+2 * 11 - (2*test)
+
+save_result = function(output, modelname){
+  filename = paste("regression_results/", modelname, ".csv", sep="")
+  model_summary = summary(output)
+  coefs = as.data.frame(model_summary$Coef)
+  coefs$variable = names(model_summary$fit$coefficients)
+  coefs$model = modelname
+  
+  model_ranking = list(modelname, model_summary$LL, output$fit$s2, 2 * model_summary$parameters - (2*model_summary$LL))
+  
+  write.csv(coefs, filename)
+  write.table(model_ranking, "regression_results/model_ranking.csv",sep=",", append=TRUE, col.names = FALSE)
+}
+
+save_result(output = car.distance0.5km, modelname = "distance 0.5")
+
+conduct_experiment = function(neighbour_matrix){
+  print("starting next experiment")
+  print( deparse(substitute(neighbour_matrix)))
+  car.out <- spautolm(formula = LDN_grid_map$cnt_AED ~
+                                  LDN_grid_map$pc_f.scaled * LDN_grid_map$pop_den.scaled + 
+                                  LDN_grid_map$pc_50_p.scaled * LDN_grid_map$pop_den.scaled + 
+                                  LDN_grid_map$pc_bd_g.scaled +
+                                  LDN_grid_map$pc_65_p.scaled * LDN_grid_map$pop_den.scaled + 
+                                  LDN_grid_map$avg_dpr.scaled +
+                                  LDN_grid_map$WD_pp_d.scaled + 
+                                  LDN_grid_map$cnt_spr.scaled * LDN_grid_map$pop_den.scaled, 
+                                data = LDN_grid_map, listw=neighbour_matrix, family="CAR",
+                      method = "Matrix_J")
+  model_name = paste( "crossTerms4", "rmCHs", "rmPopDen", "bothAge", deparse(substitute(neighbour_matrix)), sep="_")
+  
+  print("saving result")
+  save_result(output = car.out, modelname = model_name)
+  summary(car.out)
+}
+
+conduct_experiment(A.queen_shared_edge)
+conduct_experiment(A.rook_shared_edge)
+conduct_experiment(A.lag2)
+conduct_experiment(A.distance1km)
+conduct_experiment(A.distance1.5km)
+conduct_experiment(A.distance0.5km)
+conduct_experiment(A.nearest4)
+conduct_experiment(A.lag4)
+
+
+
+## Final Model -------------------------------------------------------------
+
+car.out <- spautolm(formula = LDN_grid_map$cnt_AED ~
+                      LDN_grid_map$pc_f.scaled * LDN_grid_map$pop_den.scaled + 
+                      LDN_grid_map$pc_50_p.scaled * LDN_grid_map$pop_den.scaled + 
+                      LDN_grid_map$pc_bd_g.scaled + 
+                      LDN_grid_map$avg_dpr.scaled +
+                      LDN_grid_map$WD_pp_d.scaled + 
+                      LDN_grid_map$cnt_spr.scaled * LDN_grid_map$pop_den.scaled+ 
+                      LDN_grid_map$cnt_CHs.scaled, 
+                    data = LDN_grid_map, listw=A.distance1km, family="CAR",
+                    method = "Matrix_J")
+summary(car.out)
+
+LDN_grid_map$fitted_vals = fitted(car.out)
+LDN_grid_map$residuals = residuals(car.out)
+
+write_sf(LDN_grid_map, "data/grids/ldn_grid_fitted.shp")
 
 # RETIRED CODE ------------------------------------------------------------
 
