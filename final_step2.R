@@ -35,6 +35,8 @@ LDN_grid_map <- mutate(LDN_grid_map, "demand_mutated" = ifelse(demand_mutated > 
 # Testing
 (min(LDN_grid_map$demand_mutated) >= 0) && (max(LDN_grid_map$demand_mutated) <= 3)
 
+# Finding original number of AEDs
+original_AED_sum = sum(LDN_grid_map$cnt_AED)
 
 # MCLP --------------------------------------------------------------------
 
@@ -181,7 +183,7 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
 }
 
 # reading csv
-solution <- import_solution("matrix_exports/solution7500.csv")
+solution <- import_solution("matrix_exports/solution_6232.csv")
 
 solution_to_plot(facility_solution = solution, facility_object = LDN_grid_map,
                  map=LDN_grid_map, demand=TRUE)
