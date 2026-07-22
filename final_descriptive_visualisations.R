@@ -542,6 +542,11 @@ car.out <- spautolm(formula = LDN_grid_map$cnt_AED ~
                     method = "Matrix_J")
 summary(car.out)
 
+car.out.dummy <- spautolm(formula = LDN_grid_map$cnt_AED ~ LDN_grid_map$pp_dn_s , 
+                    data = LDN_grid_map, listw=A.distance1km, family="CAR",
+                    method = "Matrix_J")
+summary(car.out.dummy)
+
 LDN_grid_map$fitted_vals = fitted(car.out)
 LDN_grid_map$residuals = residuals(car.out)
 
