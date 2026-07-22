@@ -118,9 +118,10 @@ import_solution = function(filename, value_map = truncated_grid){
   print(paste("Number of AEDs Placed: ", sum(solution_facsol)))
   
   initial_demand <- value_map$demand_mutated
-  remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations),]
+  remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations),]$X1
   remaining_demand2 <- initial_demand - solution[1:Nlocations,]$X1
-  sanity_check = min(remaining_demand == remaining_demand2) == 1
+  remaining_demand2 = pmax(remaining_demand2, 0)
+  sanity_check =( max(remaining_demand - remaining_demand2) < 1e-10)
   print(paste("Sanity Check: ", sanity_check))
   if(sanity_check == FALSE){
     print(paste("Sum demand: ", sum(initial_demand)))
@@ -133,6 +134,14 @@ import_solution = function(filename, value_map = truncated_grid){
   print(paste("% Demand covered: ", pc_demand_covered))
   #solution_to_plot(solution_facsol, st_centroid(truncated_grid), map=truncated_grid)
   return (solution$X1)
+}
+
+assess_solution = function(solution_facilities, value_map = truncated_grid){
+  initial_demand <- value_map$demand_mutated
+  remaining_demand <- initial_demand - solution
+  remaining_demand = pmax(remaining_demand2, 0)
+  pc_demand_covered = (sum(initial_demand) - sum(remaining_demand)) / sum(initial_demand) * 100
+  print(paste("% Demand covered: ", pc_demand_covered))
 }
 
 solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE,
@@ -183,7 +192,13 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
 }
 
 # reading csv
-solution <- import_solution("matrix_exports/solution_6232.csv")
+solution <- import_solution("matrix_exports/solution_8310.csv")
 
 solution_to_plot(facility_solution = solution, facility_object = LDN_grid_map,
                  map=LDN_grid_map, demand=TRUE)
+
+
+# Evaluation --------------------------------------------------------------
+
+# Assessing the current layout 
+assess_solution(LDN_grid_map$cnt_AED)
