@@ -648,13 +648,39 @@ import$distance_matrix  = model_specs[,2]
 names(import) = names(total_coef_matrix)
 total_coef_matrix = rbind(total_coef_matrix, import)
 
+total_coef_matrix$variable2 = sub("LDN_grid_map[$]", "", total_coef_matrix$variable)
+total_coef_matrix$variable2 = sub("[.]scaled", "", total_coef_matrix$variable2)
+as.character(total_coef_matrix$variable2)
 
+total_coef_matrix %>% 
+  arrange(length(as.character(total_coef_matrix$variable2))) %>%
+  mutate(variable2 = factor(variable2, levels = unique(variable2))) %>%
+  ggplot() +
+    geom_point(aes(variable2, Estimate, 
+                   size = p_val, colour=distance_matrix), 
+               alpha=0.3) +
+    scale_size_continuous(range = c(2,0.1)) +
+  scale_colour_discrete(name = "Distance Matrix",  
+                        palette = "hue")+ 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Variable Name") +
+  ylab("Coefficient Estimate") 
 
-long <- wide %>% 
-  pivot_longer(
-    cols = `1950`:`1954`, 
-    names_to = "year",
-    values_to = "value"
-  )
+AIC_list <- read_csv("regression_results/model_ranking.csv", 
+                     +     col_types = cols(...6 = col_skip(), ...7 = col_skip()), 
+                     +     skip = 1)
+AIC_list = AIC_list[-6:-7]
+names(AIC_list)[5] = "AIC"
+AIC_list = AIC_list[-1:-14,]
+AIC_list$AIC <- as.numeric(AIC_list$AIC)
+AIC_model_specs <- do.call(rbind,str_split(AIC_list$X.model.name.,"_A[.]"))
+AIC_list$variable_combination  <- AIC_model_specs[,1]
+AIC_list$distance_matrix  <- AIC_model_specs[,2]
 
- stringr::str_split("158–170", "-")
+AIC_list2 = AIC_list[5:7]
+
+test_table = table(x=AIC_list2$distance_matrix,y=AIC_list2$variable_combination)
+
+ggplot(AIC_list2, aes(distance_matrix, variable_combination, fill= AIC)) + 
+  geom_tile() +
+  theme_minimal()
