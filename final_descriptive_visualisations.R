@@ -16,10 +16,11 @@ library(ggplot2) # for plotting
 #library(ggmap)
 
 library(dplyr) # for select
+library(tidyr) # for pivoting longer in dataframe coef collecting
+library(stringr) #to split strings
 #library(spdep)
 
 library(openairmaps) # for converting postcodes out
-package.install
 
 # Functions ---------------------------------------------------------------
 
@@ -581,27 +582,79 @@ write_sf(LDN_MSOA_map, "maps/LDN_MSOA/ldn_MSOA_map.shp")
 
 
 
+# Plots + Results -------------------------------------------------------------------
 
-## Care Homes RETIRED --------------------------------------------------------------
+plot_descriptive_ldn(relevant_col = 'pop_den', 
+                     map = LDN_grid_map,
+                     title = "Population Density Interpolated", 
+                     legend_title = "Residents per Sq Km")
 
-MSOA_CH_data <- read_csv("data/external_datasets/UK care home.csv", 
-                         skip = 7)
+plot_descriptive_ldn(relevant_col = 'avg_dpr', 
+                     map = LDN_grid_map,
+                     title = "Household Deprivation Interpolated", 
+                     legend_title = "Average Dimensions \nof Deprivation")
 
-names(MSOA_CH_data) = c('MSOA', 'mnemonic', 'total', 'LA_CHwN', 'LA_CHwoN', 'O_CHwN', 'O_CHwoN')
+queen_shared_edge.nb <- poly2nb(LDN_grid_map,queen=TRUE)
+A.queen_shared_edge <- nb2listw(queen_shared_edge.nb,style="B", zero.policy = TRUE)
 
-MSOA_CH_obs <- MSOA_CH_data %>% 
-  group_by(MSOA)%>% 
-  summarise(CH_pop = 
-              sum(LA_CHwN) + sum(LA_CHwoN) + sum(O_CHwN) + sum(O_CHwoN) )
+find_variable_stats = function(relevant_col, map = LDN_grid_map){
+  stat.mean = mean(LDN_grid_map[[relevant_col]])
+  stat.SD = sd(LDN_grid_map[[relevant_col]])
+  moran_result =moran.test(LDN_grid_map[[relevant_col]], A.queen_shared_edge)
+  stat.Istat = moran_result$estimate[1]
+  stat.Ipval = moran_result$p.value
+  
+  print(paste("----- Stats for ", relevant_col, " ----- "))
+  print(paste("Mean:", stat.mean))
+  print(paste("SD:", stat.SD))
+  print(paste("I Result:", stat.Istat))
+  print(paste("I pval:", stat.Ipval))
+}
 
-# Joining with the LSOA map
-LDN_MSOA_map <- left_join(LDN_MSOA_map, MSOA_CH_obs, 
-                      by = c("MSOA21NM" = "MSOA"))
+find_variable_stats(relevant_col = 'pop_den')
+find_variable_stats(relevant_col = 'pc_f')
+find_variable_stats(relevant_col = 'pc_50_p')
+find_variable_stats(relevant_col = 'pc_bd_g')
+find_variable_stats(relevant_col = 'avg_dpr')
+find_variable_stats(relevant_col = 'WD_pp_d')
+find_variable_stats(relevant_col = 'cnt_spr')
 
-# Plotting 
-plot_descriptive_ldn(relevant_col = 'CH_pop', title = "Care Population by MSOA", 
-                     legend_title = "Number of people \nliving in Care Facilities", 
-                     map = LDN_MSOA_map)
+read_coef_csv = function(filename){
+  print(paste("---- Starting Import of", filename, "  ----"))
+  import <- read_csv(filename)
+  import <- import[-1]
+  model_specs <- do.call(rbind,str_split(import$model,"_A."))
+  import$variable_combination  <- model_specs[,1]
+  import$distance_matrix  <- model_specs[,2]
+  names(import) <- names(total_coef_matrix)
+  total_coef_matrix <<- rbind(total_coef_matrix, import)
+  print(paste("---- Completed Import of", filename, "  ----"))
+}
+total_coef_matrix = data.frame(test)
 
-max(LDN_MSOA_map$CH_pop)
+coef_files <- list.files(path="regression_results/to_import", pattern="*.csv", full.names=TRUE, recursive=FALSE)
+for(file in coef_files){
+  read_coef_csv(file)
+}
+unique(total_coef_matrix$model)
 
+read_coef_csv("regression_results/age50_A.distance0.5km.csv")
+
+import = read_csv("regression_results/age50_A.distance0.5km.csv")
+import = import[-1]
+model_specs = do.call(rbind,str_split(import$model,"_A."))
+import$variable_combination  = model_specs[,1]
+import$distance_matrix  = model_specs[,2]
+names(import) = names(total_coef_matrix)
+total_coef_matrix = rbind(total_coef_matrix, import)
+
+
+
+long <- wide %>% 
+  pivot_longer(
+    cols = `1950`:`1954`, 
+    names_to = "year",
+    values_to = "value"
+  )
+
+ stringr::str_split("158–170", "-")
