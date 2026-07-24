@@ -789,22 +789,3 @@ AIC_list2$distance_matrix = sub("distance","Distance ", AIC_list2$distance_matri
 AIC_list2$distance_matrix = sub("lag","Lag ", AIC_list2$distance_matrix)
 AIC_list2$distance_matrix = sub("nearest","Nearest ", AIC_list2$distance_matrix)
 AIC_list2$modelNum = sub("model","Model", AIC_list2$modelNum) 
-
-=======
-                                    levels=c("Queen Adjacency", "Rook Adjacency", "distance0.5km", "distance1km", "distance1.5km",
-                                             "lag2", "lag4", "nearest4"))
-AIC_list2$modelNum <- factor(AIC_list2$modelNum, 
-                                    levels=c("model 1", "model 2", "model 3", "model 4", "model 5",
-                                             "model 6", "model 7", "model 8", "model 9", "model 10"))
-
-ggplot(AIC_list2, aes(distance_matrix, modelNum, fill= AIC)) + 
-  geom_tile() +
-  geom_label(data = minimum, fill= "white", alpha=0.5, 
-             size = 2.5, aes(label = "min AIC")) + 
-  scale_fill_continuous(name = "AIC", 
-                        palette = "viridis") +
-  theme(axis.text.x.bottom = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  xlab("Distance Matrix") +
-  ylab("Regression Model") 
-
->>>>>>> b4b9f4f2b48ff0364f2dce958a80b5f29f5ad9cc
