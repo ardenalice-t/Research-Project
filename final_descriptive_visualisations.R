@@ -619,6 +619,11 @@ find_variable_stats(relevant_col = 'avg_dpr')
 find_variable_stats(relevant_col = 'WD_pp_d')
 find_variable_stats(relevant_col = 'cnt_spr')
 
+
+## Reading in Coefficients -------------------------------------------------
+
+
+
 read_coef_csv = function(filename){
   print(paste("---- Starting Import of", filename, "  ----"))
   import <- read_csv(filename)
@@ -666,6 +671,70 @@ total_coef_matrix %>%
   xlab("Variable Name") +
   ylab("Coefficient Estimate") 
 
+
+# Updating total coef thing -----------------------------------------------
+
+total_coef_matrix2 = total_coef_matrix
+
+total_coef_matrix2 = total_coef_matrix2[!(total_coef_matrix2$variable_combination == "crossTerms4_rmChs_bothAge"),]
+total_coef_matrix2 = total_coef_matrix2[!(total_coef_matrix2$variable_combination == "crossTerms4_rmCHs_rmPopDen_bothAge"),]
+total_coef_matrix2 = total_coef_matrix2[!(total_coef_matrix2$variable_combination == "full method_crossTermsAge_age50"),]
+
+for (i in 1:length(unique(total_coef_matrix2$variable_combination))){
+  current_combo = unique(total_coef_matrix2$variable_combination)[i]
+  combo_name = paste("model",as.character(i))
+  total_coef_matrix2$modelNum[total_coef_matrix2$variable_combination == current_combo] = combo_name
+}
+
+total_coef_matrix2[(total_coef_matrix2$distance_matrix == "queen_shared_edge"),]$distance_matrix = "Queen Adjacency"
+total_coef_matrix2[(total_coef_matrix2$distance_matrix == "rook_shared_edge"),]$distance_matrix = "Rook Adjacency"
+
+
+total_coef_matrix2$distance_matrix <- factor(total_coef_matrix2$distance_matrix, 
+                                    levels=c("Queen Adjacency", "Rook Adjacency", "distance0.5km", "distance1km", "distance1.5km",
+                                             "lag2", "lag4", "nearest4"))
+total_coef_matrix2$modelNum <- factor(total_coef_matrix2$modelNum, 
+                             levels=c("model 1", "model 2", "model 3", "model 4", "model 5",
+                                      "model 6", "model 7", "model 8", "model 9", "model 10"))
+
+total_coef_matrix2 %>% 
+  arrange(length(as.character(total_coef_matrix2$variable2))) %>%
+  mutate(variable2 = factor(variable2, levels = unique(variable2))) %>%
+  ggplot() +
+  geom_point(aes(variable2, Estimate, 
+                 size = p_val, colour=distance_matrix), 
+             alpha=0.3) +
+  scale_size_continuous(range = c(2,0.1)) +
+  scale_colour_discrete(name = "Distance Matrix",  
+                        palette = "hue")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        panel.grid.minor = element_blank()) +
+  xlab("Variable Name") +
+  ylab("Coefficient Estimate") 
+
+
+total_coef_matrix2$variable2 = sub("cat", "Female Proportion", total_coef_matrix2$variable2)
+
+total_coef_matrix2$variable2 = sub("pc_50_p","50+ Proportion", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("pc_bd_g","Bad General Health Proportion", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("avg_dpr","Average Household Deprivation", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("pop_den","Population Density", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("WD_pp_d","Workday Population Density", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("cnt_spr","Number of Sports Sites", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("cnt_CHs","Number of Care Facilities", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("pc_65_p","65+ Proportion", total_coef_matrix2$variable2)
+
+total_coef_matrix2$variable2 = sub("Household","Dim.", total_coef_matrix2$variable2)
+total_coef_matrix2$variable2 = sub("X"," x ", total_coef_matrix2$variable2)
+
+
+total_coef_matrix2$distance_matrix = sub("distance","Distance", total_coef_matrix2$distance_matrix)
+
+
+## Plotting AIC ------------------------------------------------------------
+
+
+
 AIC_list <- read_csv("regression_results/model_ranking.csv", 
                      +     col_types = cols(...6 = col_skip(), ...7 = col_skip()), 
                      +     skip = 1)
@@ -681,6 +750,35 @@ AIC_list2 = AIC_list[5:7]
 
 test_table = table(x=AIC_list2$distance_matrix,y=AIC_list2$variable_combination)
 
-ggplot(AIC_list2, aes(distance_matrix, variable_combination, fill= AIC)) + 
+AIC_list2 = AIC_list2[!(AIC_list2$variable_combination == "crossTerms4_rmChs_bothAge"),]
+AIC_list2 = AIC_list2[!(AIC_list2$variable_combination == "crossTerms4_rmCHs_rmPopDen_bothAge"),]
+AIC_list2 = AIC_list2[!(AIC_list2$variable_combination == "full method_crossTermsAge_age50"),]
+
+for (i in 1:length(unique(AIC_list2$variable_combination))){
+  current_combo = unique(AIC_list2$variable_combination)[i]
+  combo_name = paste("model",as.character(i))
+  AIC_list2$modelNum[AIC_list2$variable_combination == current_combo] = combo_name
+}
+
+AIC_list2[(AIC_list2$distance_matrix == "queen_shared_edge"),]$distance_matrix = "Queen Adjacency"
+AIC_list2[(AIC_list2$distance_matrix == "rook_shared_edge"),]$distance_matrix = "Rook Adjacency"
+
+minimum <- AIC_list2[which.min(AIC_list2$AIC),]
+
+AIC_list2$distance_matrix <- factor(AIC_list2$distance_matrix, 
+                                    levels=c("Queen Adjacency", "Rook Adjacency", "distance0.5km", "distance1km", "distance1.5km",
+                                             "lag2", "lag4", "nearest4"))
+AIC_list2$modelNum <- factor(AIC_list2$modelNum, 
+                                    levels=c("model 1", "model 2", "model 3", "model 4", "model 5",
+                                             "model 6", "model 7", "model 8", "model 9", "model 10"))
+
+ggplot(AIC_list2, aes(distance_matrix, modelNum, fill= AIC)) + 
   geom_tile() +
-  theme_minimal()
+  geom_label(data = minimum, fill= "white", alpha=0.5, 
+             size = 2.5, aes(label = "min AIC")) + 
+  scale_fill_continuous(name = "AIC", 
+                        palette = "viridis") +
+  theme(axis.text.x.bottom = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Distance Matrix") +
+  ylab("Regression Model") 
+
