@@ -173,32 +173,52 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
       coord_sf(crs = st_crs(ldn_boundary_map))
   }
   else{
+    facility_object$num_placed = facility_solution[1:Nlocations]
+    facility_object = facility_object[facility_object$num_placed >0,]
+    
     ggplot() + 
-      geom_sf(data = ldn_boundary_map) +
-      geom_sf(data=chosen_1facilities,
-              size = 0.1,alpha = 1,
-              colour="yellow") +
-      geom_sf(data=chosen_2facilities,
-              size = 0.1,alpha = 1,
-              colour="orange") +
-      geom_sf(data=chosen_3facilities,
-              size = 0.1,alpha = 1,
-              colour="red") +
+      geom_sf(data = ldn_boundary_map,fill="grey") +
+      geom_sf(data=facility_object,
+              size = 0.07,alpha = 1,
+              aes(colour=as.character(num_placed))) +
+      scale_color_discrete(palette = c( "yellow", "orange", "red"), name = "Number of AEDs") + 
       xlab("Longitude") +
       ylab("Latitude") +
-      coord_sf(crs = st_crs(ldn_boundary_map))
+      coord_sf(crs = st_crs(ldn_boundary_map)) +
+      theme_minimal()
   }
   
 }
+?geom_sf
 
 # reading csv
-solution <- import_solution("matrix_exports/solution_8310.csv")
+solution <- import_solution("matrix_exports/solution_6232.csv")
 
-solution_to_plot(facility_solution = solution, facility_object = LDN_grid_map,
-                 map=LDN_grid_map, demand=TRUE)
+solution_to_plot(facility_solution = solution, facility_object = st_centroid(truncated_grid),
+                 map=LDN_grid_map, demand=FALSE)
 
+0.75 * 8310
+test = st_centroid(truncated_grid)
+test$num_placed = solution[1:Nlocations]
+test = test[test$num_placed >0,]
+
+ggplot() + 
+  geom_sf(data = ldn_boundary_map,fill="grey") +
+  geom_sf(data=test,
+          size = 0.07,alpha = 1,
+          aes(colour=as.character(num_placed))) +
+  scale_color_discrete(palette = c( "yellow", "orange", "red"), name = "Number of AEDs") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  coord_sf(crs = st_crs(ldn_boundary_map)) +
+  theme_minimal()
 
 # Evaluation --------------------------------------------------------------
 
 # Assessing the current layout 
 assess_solution(LDN_grid_map$cnt_AED)
+
+existing_distribution = mutate(LDN_grid_map, "capped_cntAED" = ifelse(cnt_AED >= 3, "3+", as.character(cnt_AED)))
+
+solution_to_plot(existing_distribution$capped_cntAED, facility_object = st_centroid(truncated_grid),
+                 map=LDN_grid_map, demand=FALSE)
