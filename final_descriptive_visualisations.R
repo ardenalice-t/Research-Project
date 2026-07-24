@@ -787,4 +787,5 @@ ggplot(AIC_list2, aes(distance_matrix, modelNum, fill= AIC)) +
 AIC_list2$distance_matrix = sub("distance","Distance ", AIC_list2$distance_matrix)
 AIC_list2$distance_matrix = sub("lag","Lag ", AIC_list2$distance_matrix)
 AIC_list2$distance_matrix = sub("nearest","Nearest ", AIC_list2$distance_matrix)
-AIC_list2$modelNum = sub("model","Model", AIC_list2$modelNum)
+AIC_list2$modelNum = sub("model","Model", AIC_list2$modelNum) 
+
