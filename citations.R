@@ -10,3 +10,6 @@ print(citation("stats"),bibtex=TRUE) # for lm
 
 print(citation("spdep"),bibtex=TRUE) # for neighbourhood matrices, moran.test
 
+print(citation("spatialreg"),bibtex=TRUE) # for spautolm
+
+
