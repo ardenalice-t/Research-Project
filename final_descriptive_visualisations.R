@@ -426,6 +426,33 @@ var(LDN_grid_map$pc_bd_g) / mean (LDN_grid_map$pc_bd_g)
 moran.test(LDN_grid_map$pc_f.scaled, A)
 
 
+
+## Linear Testing ----------------------------------------------------------
+
+linear.out <- lm(formula = LDN_grid_map$cnt_AED ~
+                                LDN_grid_map$pc_f.scaled + 
+                                LDN_grid_map$pc_65_p.scaled +
+                                LDN_grid_map$pc_50_p.scaled + 
+                                LDN_grid_map$pc_bd_g.scaled +
+                                LDN_grid_map$avg_dpr.scaled +
+                                LDN_grid_map$pop_den.scaled+ 
+                                LDN_grid_map$WD_pp_d.scaled + 
+                                LDN_grid_map$cnt_spr.scaled +
+                                LDN_grid_map$cnt_CHs.scaled, 
+                              data = LDN_grid_map)
+summary(linear.out)
+linear.out
+
+head(linear.out$residuals)
+
+queen_shared_edge.nb <- ?poly2nb(LDN_grid_map,queen=TRUE)
+A.queen_shared_edge <- nb2listw(queen_shared_edge.nb,style="B", zero.policy = TRUE)
+
+moran.test(linear.out$residuals, A.queen_shared_edge)
+
+?nb2listw
+
+
 ## neighbours --------------------------------------------------------------
 
 
