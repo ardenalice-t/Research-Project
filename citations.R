@@ -12,4 +12,6 @@ print(citation("spdep"),bibtex=TRUE) # for neighbourhood matrices, moran.test
 
 print(citation("spatialreg"),bibtex=TRUE) # for spautolm
 
+print(citation("maxcovr"),bibtex=TRUE) # for MCLP
+
 
