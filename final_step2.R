@@ -193,6 +193,7 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
 
 # reading csv
 solution <- import_solution("matrix_exports/solution_6232.csv")
+print(sum(solution[18098:(18098*2)]))
 
 solution_to_plot(facility_solution = solution, facility_object = st_centroid(truncated_grid),
                  map=LDN_grid_map, demand=FALSE)
