@@ -40,7 +40,8 @@ plot_coef_estimates = function(dataframe){
                    size = .data[["Pr(>|z|)"]], colour=distance_matrix), 
                alpha=0.3) +
     geom_hline(yintercept = 0, color = "darkgray") + 
-    scale_size_continuous(range = c(2,0.1), name = "p value") +
+    scale_size_continuous(range = c(2,0.01), name = "p value",
+                          breaks =c(0.2, 0.4, 0.6, 0.8, 1), limits = c(1, 0)) +
     scale_colour_discrete(name = "Distance Matrix",  
                           palette = "hue")+ 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
