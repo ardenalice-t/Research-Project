@@ -140,15 +140,15 @@ lp_runthrough = function (truncated_grid, max_AEDs, demand_vector = truncated_gr
 
 ## Maps -------------------------------------------------------------------
 
-LDN_grid_map <- read_sf("data/300grid_regressed.shp")
+LDN_grid_map <- read_sf("data/grids/ldn_grid_fitted.shp")
 ldn_boundary_map <- read_sf("maps/gla")
 ldn_boundary_map = st_transform(ldn_boundary_map, crs=4283)
 
 
 # Capping Values ----------------------------------------------------------
 
-LDN_grid_map <- mutate(LDN_grid_map, "F1_mutated" = ifelse(F1_scld < 0, 0, F1_scld))
-LDN_grid_map <- mutate(LDN_grid_map, "F1_mutated" = ifelse(F1_mutated > 3, 3, F1_mutated))
+LDN_grid_map <- mutate(LDN_grid_map, "F1_mutated" = ifelse(fitted_vals < 0, 0, fitted_vals))
+LDN_grid_map <- mutate(LDN_grid_map, "F1_mutated" = ifelse(fitted_vals > 3, 3, F1_mutated))
 
 # Testing
 (min(LDN_grid_map$F1_mutated) >= 0) && (max(LDN_grid_map$F1_mutated) <= 3)
@@ -713,7 +713,7 @@ lp.solution <- lp(direction= "min",
                   int.vec = 1:Nlocations
 )
 
-fac_sol = process_lp_result(lp.solution, print_sol_vec = FALSE, map = truncated_grid)
+fac_sol = process_lp_result(solution3, print_sol_vec = FALSE, map = truncated_grid)
 
 max(fac_sol)
 
@@ -726,25 +726,71 @@ import_solution = function(filename){
   solution <- read_csv(filename, 
                         col_names = FALSE)
   solution_facsol = as.list(solution[1:Nlocations,])$X1
-  initial_demand <- truncated_grid$F1_mutated
+  initial_demand <- truncated_grid$fttd_vl
   remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations),]
   pc_demand_covered = (sum(initial_demand) - sum(remaining_demand)) / sum(initial_demand) * 100
   print(paste("% Demand covered: ", pc_demand_covered))
   solution_to_plot(solution_facsol, st_centroid(truncated_grid), map=truncated_grid)
   return (solution)
 }
-solution_solocov <- read_csv("matrix_exports/solution_solocoverage.csv", 
+solution_solocov <- read_csv("matrix_exports/solution_solocoverage2.csv", 
                       col_names = FALSE)
+sum(solution_solocov)
 solution_solocov = as.list(solution_solocov[1:Nlocations,])$X1
 
-solution_to_plot(solution_solocov, st_centroid(truncated_grid), map=truncated_grid, demand=FALSE)
+solution_to_plot(solution3, st_centroid(truncated_grid), map=truncated_grid, demand=FALSE)
 
-solution3 = import_solution("matrix_exports/solution3.csv")
+solution3 = import_solution("matrix_exports/solution_solocoverage2.csv")
 sum(solution3)
 
 solution_solocov = import_solution("matrix_exports/solution_solocoverage.csv")
 
 
+
+# Misc --------------------------------------------------------------------
+
+chosen_1facilities = solution_solocov$geometry[facility_solution==1]
+chosen_2facilities = facility_object$geometry[facility_solution==2]
+chosen_3facilities = facility_object$geometry[facility_solution==3]
+if (demand==TRUE){
+  ggplot() + 
+    geom_sf(data = ldn_boundary_map) +
+    geom_sf(data = map, lwd=0.0001, 
+            aes(fill = F1_scld)) +
+    scale_fill_steps(breaks = seq(0, max_relevant_val, length = num_bins),
+                     limit = c(0,10000),
+                     na.value = "light blue",
+                     rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
+                     name = legend_title) + 
+    geom_sf(data=chosen_1facilities,
+            size = 0.0001,alpha = 0.5,
+            colour="yellow") +
+    geom_sf(data=chosen_2facilities,
+            size = 0.0001,alpha = 0.5,
+            colour="orange") +
+    geom_sf(data=chosen_3facilities,
+            size = 0.0001,alpha = 0.5,
+            colour="red") +
+    xlab("Longitude") +
+    ylab("Latitude") +
+    coord_sf(crs = st_crs(ldn_boundary_map))
+}
+else{
+  ggplot() + 
+    geom_sf(data = ldn_boundary_map) +
+    geom_sf(data=chosen_1facilities,
+            size = 0.0001,alpha = 0.5,
+            colour="yellow") +
+    geom_sf(data=chosen_2facilities,
+            size = 0.0001,alpha = 0.5,
+            colour="orange") +
+    geom_sf(data=chosen_3facilities,
+            size = 0.0001,alpha = 0.5,
+            colour="red") +
+    xlab("Longitude") +
+    ylab("Latitude") +
+    coord_sf(crs = st_crs(ldn_boundary_map))
+}
 
 # Other Solvers -----------------------------------------------------------
 library(Rglpk)
