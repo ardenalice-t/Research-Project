@@ -128,11 +128,11 @@ LSOA_map <- left_join(LSOA_map, LSOA_popden_statistics,
 
 # Plotting 
 plot_descriptive_ldn(relevant_col = 'pop_den', title = "Population Density by LSOA", 
-                     legend_title = "Residents per Sq Km")
+                     legend_title = "Residents per sq km")
 
 # with exponential scale
 plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den', title = "Population Density by LSOA", 
-                     legend_title = "Residents per Sq Km")
+                     legend_title = "Residents per sq km")
 
 
 LSOA_WD_popden_data <- read_csv("data/external_datasets/WD_pop_den.csv")
@@ -147,11 +147,11 @@ LSOA_map <- left_join(LSOA_map, LSOA_WD_popden_statistics,
 
 # Plotting 
 plot_descriptive_ldn(relevant_col = 'WD_pop_den', title = "Workday Population Density by LSOA", 
-                     legend_title = "Residents per Sq Km")
+                     legend_title = "Residents per sq km")
 
 # with exponential scale
 plot_descriptive_ldn_exp_scale(relevant_col = 'WD_pop_den', title = "Workday Population Density by LSOA", 
-                     legend_title = "Residents per Sq Km")
+                     legend_title = "Residents per sq km")
 # Saving LSOA Map ---------------------------------------------------------
 
 write_sf(LSOA_map, "data/LSOA_complete_map_July_TEST_CAN_DELETE.gpkg")
