@@ -108,15 +108,16 @@ plot_coef_estimates(total_coef_matrix)
 # Calculating Correlation -------------------------------------------------
 
 by_model_coefs = total_coef_matrix %>% group_by(model)
-nGroups = max(group_indices(by_model_coefs))
+nModels = max(group_indices(by_model_coefs))
 
 correlations =  data.frame(Model1=character(),
                    Model2=character(), 
-                   Correlation=numeric()) 
+                   Correlation=numeric(),
+                   p_value=numeric()) 
 
 
-for(model1_idx in 2:nGroups){
-  for(model2_idx in 1:model1_idx){
+for(model1_idx in 2:nModels){
+  for(model2_idx in 1:(model1_idx-1)){
     model1 = ungroup(total_coef_matrix[group_indices(by_model_coefs)==model1_idx,])
     model2 =  ungroup(total_coef_matrix[group_indices(by_model_coefs)==model2_idx,])
     
@@ -130,10 +131,12 @@ for(model1_idx in 2:nGroups){
     model2 = model2 %>%  arrange(clean_var_name)
     
     cor = cor(model1$Estimate, model2$Estimate)
-    correlations[nrow(correlations) + 1,] = list(model1_chr, model2_chr, cor)
+    cor_test <- cor.test(model1$Estimate, model2$Estimate,alternative = "greater")
+    correlations[nrow(correlations) + 1,] = list(model1_chr, model2_chr, 
+                                                 cor, cor_test$p.value)
     
     print(paste("Testing correlation for models:", model1_chr, 
-                "and ", model2_chr))
+                "and", model2_chr))
     
     print(paste("Correlation value:", cor))
   }
@@ -141,8 +144,11 @@ for(model1_idx in 2:nGroups){
 
 print(paste("Mean correlation across all models:", mean(correlations$Correlation)))
 print(paste("SD of correlation across all models:", sd(correlations$Correlation)))
+
+print(paste("Mean p value across all models:", mean(correlations$p_value)))
+print(paste("SD of p value across all models:", sd(correlations$p_value)))
+
 print(paste("Combination with minimum correlation:") )
 print(tibble(correlations[which.min(correlations$Correlation),]))
-
 
     
