@@ -15,19 +15,7 @@ library(ggplot2)
 
 ## Functions ---------------------------------------------------------------
 
-plot_descriptive_ldn <- function(relevant_col, 
-                                 title, legend_title, 
-                                 map = LSOA_map){
-  ggplot() +
-    geom_sf(data = map, lwd=0, 
-            aes(fill = .data[[relevant_col]])) + 
-    scale_fill_continuous(name = legend_title, 
-                          labels = scales::label_number(), 
-                          palette = "viridis") +
-    ggtitle(label = title) +
-    xlab("Longitude") +
-    ylab("Latitude") 
-}
+source("functions/plot_descriptive_ldn.R")
 
 plot_descriptive_ldn_exp_scale <- function(relevant_col, 
                                  title, legend_title, 
@@ -85,7 +73,8 @@ LSOA_map <- left_join(LSOA_map, LSOA_idv_statistics,
 # Plotting 
 plot_descriptive_ldn(relevant_col = 'pc_50_plus', 
                      title = "Population Age by LSOA", 
-                     legend_title = "Percent of Population \n50 or above")
+                     legend_title = "Percent of Population \n50 or above",
+                     map=LSOA_map)
 
 
 ## Adding Household Data -------------------------------------------
@@ -101,7 +90,7 @@ LSOA_hos_data <- mutate(LSOA_hos_data,
 
 LSOA_hos_statistics <- LSOA_hos_data %>% 
   group_by(`Lower layer Super Output Areas Code`)%>% 
-  summarise(avg_hos_depr = 
+  summarise(avg_hos_dpr = 
               sum(Observation * `Household deprivation (6 categories) Code`, na.rm = TRUE) /
               sum(Observation, na.rm = TRUE))
 
@@ -110,9 +99,10 @@ LSOA_map <- left_join(LSOA_map, LSOA_hos_statistics,
                       by = c("LSOA21CD" = "Lower layer Super Output Areas Code"))
 
 # Plotting 
-plot_descriptive_ldn(relevant_col = 'avg_hos_depr', 
+plot_descriptive_ldn(relevant_col = 'avg_hos_dpr', 
                      title = "Household Deprivation by LSOA", 
-                     legend_title = "Average Number of \nDeprivation Dimensions")
+                     legend_title = "Average Number of \nDeprivation Dimensions",
+                     map=LSOA_map)
 
 ## Adding Population Densities ---------------------------------------------
 
@@ -128,7 +118,8 @@ LSOA_map <- left_join(LSOA_map, LSOA_popden_statistics,
 
 # Plotting 
 plot_descriptive_ldn(relevant_col = 'pop_den', title = "Population Density by LSOA", 
-                     legend_title = "Residents per sq km")
+                     legend_title = "Residents per sq km",
+                     map=LSOA_map)
 
 # with exponential scale
 plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den', title = "Population Density by LSOA", 
@@ -147,13 +138,14 @@ LSOA_map <- left_join(LSOA_map, LSOA_WD_popden_statistics,
 
 # Plotting 
 plot_descriptive_ldn(relevant_col = 'WD_pop_den', title = "Workday Population Density by LSOA", 
-                     legend_title = "Residents per sq km")
+                     legend_title = "Residents per sq km",
+                     map=LSOA_map)
 
 # with exponential scale
 plot_descriptive_ldn_exp_scale(relevant_col = 'WD_pop_den', title = "Workday Population Density by LSOA", 
                      legend_title = "Residents per sq km")
 # Saving LSOA Map ---------------------------------------------------------
 
-write_sf(LSOA_map, "data/LSOA_complete_map_July_TEST_CAN_DELETE.gpkg")
+write_sf(LSOA_map, "data/LSOA_data_ldn_2026_07_31.gpkg")
 #gpkg file allows for more than 10 character file names 
        
