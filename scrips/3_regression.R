@@ -9,12 +9,15 @@
 ## Packages ----------------------------------------------------------------
 
 library(sf)
+library(reshape)
+library(ggplot2)
 library(spdep)
 library(spatialreg)
 library(dplyr)
 
 ## Functions ---------------------------------------------------------------
 
+source("functions/plot_descriptive_ldn.R")
 
 ## Files -------------------------------------------------------------------
 
@@ -54,13 +57,23 @@ moran_I_results <- data.frame(var_name = character(),
 for (col in scaled_cols){
   moran_test <- moran.test((LDN_grid[[col]]), A.queen_shared_edge)
   moran_I_results[nrow(moran_I_results) + 1,]  <- list(col, 
-                                                       moran_test$estimate[1],
+                                                       moran_test$statistic, # not sure if this is supposed to be statistic or estimate
                                                        moran_test$p.value)
 }
 
 # saving results
 write.csv(moran_I_results, "results/scaled_cols_morans_I.csv")
 
+
+# Testing Correlation -----------------------------------------------------
+
+variable_correlation <-cor(st_drop_geometry(LDN_grid[scaled_cols]))
+variable_correlation <- melt(variable_correlation) 
+
+ggplot(variable_correlation, aes(X1, X2)) +
+  geom_tile(aes(fill = value)) +
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0))
 
 # Linear Test -------------------------------------------------------------
 
@@ -84,14 +97,14 @@ head(linear.out$residuals)
 linear_residual_moranI <- moran.test(linear.out$residuals, A.queen_shared_edge)
 
 print(paste("Moran's I Statistic Estimate:",
-            linear_residual_moranI$estimate[1]))
+            linear_residual_moranI$statistic))
 print(paste("Moran's I Statistic p value:",
             linear_residual_moranI$p.value))
 
 
 # Neighborhood Matrices --------------------------------------------------
 
-# Used in creating the neighbourhood matrices
+# Used in creating the neighborhood matrices
 LDN_grid_centroid <- st_centroid(LDN_grid)
 
 # neighbors found from distance from centers
@@ -243,8 +256,8 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5", "model
 # Regression --------------------------------------------------------------
 
 # initializing a model ranking csv
-write.csv(data.frame("Formula", "Neighbour Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
-          "results/regression_results/model_ranking.csv", col.names = FALSE)
+#write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
+#          "results/regression_results/model_ranking.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])
@@ -264,7 +277,7 @@ for (n_model in 1:(length(models))){
                         family="CAR",
                         method = "Matrix_J")
     
-    # saving result
+    # Creating a dataframe of coefficient data
     unique_model_name = paste(model_name, Amat_name, sep="_")
     filename = paste("results/regression_results/", unique_model_name,
                      ".csv", sep="")
@@ -275,12 +288,14 @@ for (n_model in 1:(length(models))){
     coefs$formula = model_name
     coefs$neighbours = Amat_name
     
+    # Creating a summary of model fit
     model_ranking = list(model_name, 
                          Amat_name,
                          model_summary$LL, 
                          car_output$fit$s2, 
                          2 * model_summary$parameters - (2*model_summary$LL))
     
+    # Saving model files
     print("Saving Files")
     
     write.csv(coefs, filename)
@@ -293,3 +308,65 @@ for (n_model in 1:(length(models))){
 }
 
 
+# Final Model -------------------------------------------------------------
+
+final_model <- model_5
+final_matrix <- A.rook_shared_edge
+
+car_output <- spautolm(formula = final_model, 
+                       data = LDN_grid, listw=final_matrix, 
+                       family="CAR",
+                       method = "Matrix_J")
+
+
+# Comparing residual spatial correlation to linear test
+
+CAR_residual_moranI <- moran.test(car_output$fit$residuals, A.queen_shared_edge)
+
+print(paste("CAR Moran's I Statistic:",
+              CAR_residual_moranI$statistic))
+print(paste("CAR Moran's I Statistic p value:",
+            CAR_residual_moranI$p.value))
+
+print(paste("Difference Moran's I Statistic:",
+            linear_residual_moranI$statistic - 
+              CAR_residual_moranI$statistic))
+
+print(paste("Percentage Change:",
+            round((CAR_residual_moranI$statistic - 
+              linear_residual_moranI$statistic) /
+              linear_residual_moranI$statistic, 4) * 100, "%"))
+
+
+# Looking at coefficient correlation
+coef_cov <- car_output$fit$imat
+coef_cor <- cov2cor(coef_cov)
+coef_cor <- melt(coef_cor) 
+ggplot(coef_cor, aes(X1, X2)) +
+  geom_tile(aes(fill = value)) +
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0))
+
+# viewing signal non spatial and spatial
+LDN_grid$signal_trend <- car_output$fit$signal_trend
+LDN_grid$signal_stochastic <- car_output$fit$signal_stochastic
+
+plot_descriptive_ldn("signal_trend", "Non-Spatial Demand", "Signal Trend",
+                     LDN_grid)
+plot_descriptive_ldn("signal_stochastic", "Spatial Demand", "Signal Stochastic",
+                     LDN_grid)
+
+
+# Attaching fitted values 
+LDN_grid$AED_demand <- car_output$fit$fitted.values
+
+
+plot_descriptive_ldn("AED_demand",title = "AED Demand", 
+                     legend_title = "Number of AEDs", map = LDN_grid, 
+                     cap=TRUE, max_val = 3, bins=5)
+
+
+# Saving Model ------------------------------------------------------------
+
+write_sf(LDN_grid, "data/Regressed_data_ldn_2026_08_04.gpkg")
+#gpkg file allows for more than 10 character file names 
