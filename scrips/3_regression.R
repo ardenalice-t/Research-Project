@@ -46,7 +46,7 @@ plot(LDN_grid["avg_hos_dpr.scaled"])
 queen_shared_edge.nb <- poly2nb(LDN_grid,queen=TRUE)
 A.queen_shared_edge <- nb2listw(queen_shared_edge.nb,style="B", zero.policy = TRUE)
 
-# saving results
+
 moran_I_results <- data.frame(var_name = character(),
                               estimate = numeric(),
                               p.value = numeric())
@@ -58,6 +58,7 @@ for (col in scaled_cols){
                                                        moran_test$p.value)
 }
 
+# saving results
 write.csv(moran_I_results, "results/scaled_cols_morans_I.csv")
 
 
@@ -88,16 +89,19 @@ print(paste("Moran's I Statistic p value:",
             linear_residual_moranI$p.value))
 
 
-# Neighbourhood Matrices --------------------------------------------------
+# Neighborhood Matrices --------------------------------------------------
+
+# Used in creating the neighbourhood matrices
+LDN_grid_centroid <- st_centroid(LDN_grid)
 
 # neighbors found from distance from centers
-distance0.5km.nb <- dnearneigh(st_centroid(LDN_grid), d1=0, d2=0.5)
+distance0.5km.nb <- dnearneigh(LDN_grid_centroid, d1=0, d2=500)
 A.distance0.5km <- nb2listw(distance0.5km.nb,style="B", zero.policy = TRUE)
 
-distance1km.nb <- dnearneigh(st_centroid(LDN_grid), d1=0, d2=1)
+distance1km.nb <- dnearneigh(LDN_grid_centroid, d1=0, d2=1000)
 A.distance1km <- nb2listw(distance1km.nb,style="B", zero.policy = TRUE)
 
-distance1.5km.nb <- dnearneigh(st_centroid(LDN_grid), d1=0, d2=1.5)
+distance1.5km.nb <- dnearneigh(LDN_grid_centroid, d1=0, d2=1500)
 A.distance1.5km <- nb2listw(distance1.5km.nb,style="B", zero.policy = TRUE)
 
 # Adjacency matrices
@@ -118,12 +122,20 @@ A.lag4 <- nb2listw(nblag_cumul(lag4.nb),style="B", zero.policy = TRUE)
 
 # Nearest K neighbors
 
-nearest4.nb <- knn2nb(knearneigh(st_centroid(LDN_grid),k=4), sym = TRUE)
+nearest4.nb <- knn2nb(knearneigh(LDN_grid_centroid,k=4), sym = TRUE)
 A.nearest4 <- nb2listw(nearest4.nb,style="B", zero.policy = TRUE)
 
 A_matrices <- list(A.distance0.5km, A.distance1km, A.distance1.5km, 
                 A.queen_shared_edge, A.rook_shared_edge,
                 A.lag2, A.lag4, A.nearest4)
+
+names(A_matrices) <- list("A.distance0.5km", "A.distance1km", "A.distance1.5km", 
+                          "A.queen_shared_edge", "A.rook_shared_edge",
+                          "A.lag2", "A.lag4", "A.nearest4")
+
+# Visualizing one
+#plot(LDN_grid$geom)
+#plot.nb(distance1km.nb, LDN_grid$geom, add = TRUE, col='red', points=FALSE)  
 
 
 # Models ------------------------------------------------------------------
@@ -224,58 +236,47 @@ model_10 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled^2 +
 
 models <- list(model_1, model_2, model_3, model_4, model_5, model_6, model_7, 
             model_8, model_9, model_10)
+names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5", "model_6", "model_7", 
+                      "model_8", "model_9", "model_10")
 
 
 # Regression --------------------------------------------------------------
 
 # initializing a model ranking csv
-write.csv(c("Model Name", "Log Likelihood", "ML Residual Variance", "AIC"), 
-          "results/regression_results/model_ranking.csv", col.names=FALSE)
+write.csv(data.frame("Formula", "Neighbour Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
+          "results/regression_results/model_ranking.csv", col.names = FALSE)
 
-for (n_model in 1:10){
-  if(n_model == 1) {model = model_1; model_chr = "model_1"}
-  if(n_model == 2) {model = model_2; model_chr = "model_2"}
-  if(n_model == 3) {model = model_3; model_chr = "model_3"}
-  if(n_model == 4) {model = model_4; model_chr = "model_4"}
-  if(n_model == 5) {model = model_5; model_chr = "model_5"}
-  if(n_model == 6) {model = model_6; model_chr = "model_6"}
-  if(n_model == 7){ model = model_7; model_chr = "model_7"}
-  if(n_model == 8) {model = model_8; model_chr = "model_8"}
-  if(n_model == 9) {model = model_9; model_chr = "model_9"}
-  if(n_model == 10) {model = model_10; model_chr = "model_10"}
+for (n_model in 1:(length(models))){
+  model_name <- names(models[n_model])
+  model <- models[[model_name]]
   
-  print(paste("Starting investigation for:", model_chr))
+  print(paste("----", "Starting investigation for:", model_name, "----"))
   
-  for(a_matrix_num in 1:8){
-    if(a_matrix_num == 1) {a_matrix = A.distance0.5km; A_chr = "A.distance0.5km"}
-    if(a_matrix_num == 2) {a_matrix = A.distance1km; A_chr = "A.distance1km"}
-    if(a_matrix_num == 3) {a_matrix = A.distance1.5km; A_chr = "A.distance1.5km"}
-    if(a_matrix_num == 4){ a_matrix = A.queen_shared_edge; A_chr = "A.queen_shared_edge"}
-    if(a_matrix_num == 5) {a_matrix = A.rook_shared_edge; A_chr = "A.rook_shared_edge"}
-    if(a_matrix_num == 6) {a_matrix = A.lag2; A_chr = "A.lag2"}
-    if(a_matrix_num == 7) {a_matrix = A.lag4; A_chr = "A.lag4"}
-    if(a_matrix_num == 8) {a_matrix = A.nearest4; A_chr = "A.nearest4"}
+  for(n_Amat in 1:(length(A_matrices))){
+    Amat_name <- names(A_matrices[n_Amat])
+    Amat <- A_matrices[[Amat_name]]
     
-    print(paste("Starting investigation for:", A_chr))
+    print(paste("Using neighbourhood matrix:", Amat_name))
     
     # performing regression
     car_output <- spautolm(formula = model, 
-                        data = LDN_grid, listw=a_matrix, 
+                        data = LDN_grid, listw=Amat, 
                         family="CAR",
                         method = "Matrix_J")
     
     # saving result
-    unique_model_name = paste(model_chr, A_chr, sep="_")
-    print("step 3")
+    unique_model_name = paste(model_name, Amat_name, sep="_")
     filename = paste("results/regression_results/", unique_model_name,
                      ".csv", sep="")
     
     model_summary = summary(car_output)
     coefs = as.data.frame(model_summary$Coef)
     coefs$variable = names(model_summary$fit$coefficients)
-    coefs$model = unique_model_name
+    coefs$formula = model_name
+    coefs$neighbours = Amat_name
     
-    model_ranking = list(unique_model_name, 
+    model_ranking = list(model_name, 
+                         Amat_name,
                          model_summary$LL, 
                          car_output$fit$s2, 
                          2 * model_summary$parameters - (2*model_summary$LL))
@@ -286,7 +287,7 @@ for (n_model in 1:10){
     write.table(model_ranking, "results/regression_results/model_ranking.csv",
                 sep=",", append=TRUE, col.names = FALSE)
     
-    print(paste("Finished Investigation for:", model_chr, A_chr))
+    print(paste("Finished Investigation for:", model_name, Amat_name, "!"))
   }
  
 }
