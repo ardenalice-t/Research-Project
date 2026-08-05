@@ -90,7 +90,12 @@ linear_model = LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled +
 linear.out <- lm(formula = linear_model, 
                  data = LDN_grid)
 
-summary(linear.out)
+linear_summary <- summary(linear.out); linear_summary
+
+linear_AIC <- 2 * linear.out$rank - (2*logLik(linear.out))
+
+print(paste("Linear Model AIC:",
+            round(linear_AIC)))
 
 head(linear.out$residuals)
 
@@ -164,17 +169,10 @@ model_1 <- LDN_grid$count_AEDs ~
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled
 
-model_2 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled + 
+model_2 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
   LDN_grid$pc_65_plus.scaled +
-  LDN_grid$pc_bad_gh.scaled +
-  LDN_grid$avg_hos_dpr.scaled +
-  LDN_grid$pop_den.scaled+ 
-  LDN_grid$WD_pop_den.scaled + 
-  LDN_grid$count_sports.scaled
-
-model_3 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled + 
-  LDN_grid$pc_65_plus.scaled * LDN_grid$pop_den.scaled+
-  LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled+ 
+  #LDN_grid$pc_50_plus.scaled + 
   LDN_grid$pc_bad_gh.scaled +
   LDN_grid$avg_hos_dpr.scaled +
   LDN_grid$pop_den.scaled+ 
@@ -182,35 +180,9 @@ model_3 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled +
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled
 
-model_4 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_65_plus.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_bad_gh.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$avg_hos_dpr.scaled +
-  LDN_grid$pop_den.scaled+ 
-  LDN_grid$WD_pop_den.scaled + 
-  LDN_grid$count_sports.scaled +
-  LDN_grid$count_CHs.scaled
-
-model_5 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_65_plus.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_bad_gh.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$avg_hos_dpr.scaled +
-  LDN_grid$pop_den.scaled + 
-  LDN_grid$WD_pop_den.scaled + 
-  LDN_grid$count_sports.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$count_CHs.scaled * LDN_grid$pop_den.scaled
-
-model_6 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled + 
-  LDN_grid$pc_65_plus.scaled +
-  LDN_grid$pc_bad_gh.scaled +
-  LDN_grid$avg_hos_dpr.scaled +
-  LDN_grid$pop_den.scaled+ 
-  LDN_grid$WD_pop_den.scaled + 
-  LDN_grid$count_sports.scaled
-
-model_7 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled + 
+model_3 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
+  #LDN_grid$pc_65_plus.scaled +
   LDN_grid$pc_50_plus.scaled + 
   LDN_grid$pc_bad_gh.scaled +
   LDN_grid$avg_hos_dpr.scaled +
@@ -219,29 +191,91 @@ model_7 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled +
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled
 
-model_8 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled + 
+model_4 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
+  LDN_grid$pc_65_plus.scaled +
+  LDN_grid$pc_50_plus.scaled + 
+  #LDN_grid$pc_bad_gh.scaled +
+  LDN_grid$avg_hos_dpr.scaled +
+  LDN_grid$pop_den.scaled+ 
+  LDN_grid$WD_pop_den.scaled + 
+  LDN_grid$count_sports.scaled +
+  LDN_grid$count_CHs.scaled
+
+model_5 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
   LDN_grid$pc_65_plus.scaled +
   LDN_grid$pc_50_plus.scaled + 
   LDN_grid$pc_bad_gh.scaled +
   LDN_grid$avg_hos_dpr.scaled +
-  LDN_grid$pop_den.scaled + 
+  LDN_grid$pop_den.scaled+ 
+  LDN_grid$WD_pop_den.scaled + 
+  LDN_grid$count_sports.scaled 
+  #LDN_grid$count_CHs.scaled 
+
+model_6 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
+  LDN_grid$pc_65_plus.scaled +
+  LDN_grid$pc_50_plus.scaled + 
+  LDN_grid$pc_bad_gh.scaled +
+  LDN_grid$avg_hos_dpr.scaled +
+  LDN_grid$pop_den.scaled+ 
+  #LDN_grid$WD_pop_den.scaled + 
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled
 
-model_9 <- LDN_grid$count_AEDs ~
-  LDN_grid$pc_f.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_bad_gh.scaled + 
+model_7 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
+  LDN_grid$pc_65_plus.scaled +
+  LDN_grid$pc_50_plus.scaled + 
+  LDN_grid$pc_bad_gh.scaled +
   LDN_grid$avg_hos_dpr.scaled +
+  LDN_grid$pop_den.scaled+ 
   LDN_grid$WD_pop_den.scaled + 
-  LDN_grid$count_sports.scaled * LDN_grid$pop_den.scaled+ 
-  LDN_grid$count_CHs.scaled
+  LDN_grid$count_sports.scaled +
+  LDN_grid$count_CHs.scaled +
+  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled + 
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pop_den.scaled + 
+  LDN_grid$pc_bad_gh.scaled : LDN_grid$pop_den.scaled
 
-model_10 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled^2 + 
-  LDN_grid$pc_65_plus.scaled^2+
-  LDN_grid$pc_50_plus.scaled^2 + 
-  LDN_grid$pc_bad_gh.scaled^2 +
-  LDN_grid$avg_hos_dpr.scaled^2 +
+model_8 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
+  LDN_grid$pc_65_plus.scaled +
+  LDN_grid$pc_50_plus.scaled + 
+  LDN_grid$pc_bad_gh.scaled +
+  LDN_grid$avg_hos_dpr.scaled +
+  LDN_grid$pop_den.scaled+ 
+  LDN_grid$WD_pop_den.scaled + 
+  LDN_grid$count_sports.scaled +
+  LDN_grid$count_CHs.scaled +
+  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled + 
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pop_den.scaled + 
+  LDN_grid$pc_bad_gh.scaled : LDN_grid$pop_den.scaled +
+  LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled + 
+  LDN_grid$count_CHs.scaled : LDN_grid$pop_den.scaled 
+
+model_9 <- LDN_grid$count_AEDs ~ 
+  LDN_grid$pc_f.scaled + 
+  LDN_grid$pc_65_plus.scaled +
+  #LDN_grid$pc_50_plus.scaled + 
+  LDN_grid$pc_bad_gh.scaled +
+  LDN_grid$avg_hos_dpr.scaled +
+  LDN_grid$pop_den.scaled+ 
+  LDN_grid$WD_pop_den.scaled + 
+  LDN_grid$count_sports.scaled +
+  LDN_grid$count_CHs.scaled +
+  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled + 
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
+  LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled
+
+model_10 <- LDN_grid$count_AEDs ~ 
+  sign(LDN_grid$pc_f.scaled) * LDN_grid$pc_f.scaled^2 + 
+  sign(LDN_grid$pc_65_plus.scaled) * LDN_grid$pc_65_plus.scaled^2 +
+  sign(LDN_grid$pc_50_plus.scaled) * LDN_grid$pc_50_plus.scaled^2 + 
+  sign(LDN_grid$pc_bad_gh.scaled) * LDN_grid$pc_bad_gh.scaled^2 +
+  sign(LDN_grid$avg_hos_dpr.scaled) * LDN_grid$avg_hos_dpr.scaled^2 +
   LDN_grid$pop_den.scaled+ 
   LDN_grid$WD_pop_den.scaled + 
   LDN_grid$count_sports.scaled +
@@ -249,6 +283,7 @@ model_10 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled^2 +
 
 models <- list(model_1, model_2, model_3, model_4, model_5, model_6, model_7, 
             model_8, model_9, model_10)
+
 names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5", "model_6", "model_7", 
                       "model_8", "model_9", "model_10")
 
@@ -302,7 +337,7 @@ for (n_model in 1:(length(models))){
     write.table(model_ranking, "results/regression_results/model_ranking.csv",
                 sep=",", append=TRUE, col.names = FALSE)
     
-    print(paste("Finished Investigation for:", model_name, Amat_name, "!"))
+    print(paste("Finished Investigation for: ", model_name, Amat_name))
   }
  
 }
@@ -310,13 +345,18 @@ for (n_model in 1:(length(models))){
 
 # Final Model -------------------------------------------------------------
 
-final_model <- model_5
+final_model <- model_9
 final_matrix <- A.rook_shared_edge
 
 car_output <- spautolm(formula = final_model, 
                        data = LDN_grid, listw=final_matrix, 
                        family="CAR",
                        method = "Matrix_J")
+
+logLik(car_output) - logLik(linear.out)
+final_AIC <- 2 * model_summary$parameters - (2*model_summary$LL)
+
+final_AIC - linear_AIC
 
 # Saving final result
 unique_model_name = "selected_model"

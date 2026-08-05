@@ -41,16 +41,14 @@ plotRegresssion("count_AEDs.detrended", "AEDs using CAR model DETREND", max_rele
                 map = LDN_grid)
 
 # EDIT - to match the final selected formula and neighbourhood
-detrend_formula <- LDN_grid$count_AEDs.detrended ~ 
+detrend_formula <- LDN_grid$count_AEDs.detrended ~
   LDN_grid$pc_f.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_65_plus.scaled * LDN_grid$pop_den.scaled +
   LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled + 
-  LDN_grid$pc_bad_gh.scaled * LDN_grid$pop_den.scaled +
+  LDN_grid$pc_bad_gh.scaled + 
   LDN_grid$avg_hos_dpr.scaled +
-  LDN_grid$pop_den.scaled + 
   LDN_grid$WD_pop_den.scaled + 
-  LDN_grid$count_sports.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$count_CHs.scaled * LDN_grid$pop_den.scaled
+  LDN_grid$count_sports.scaled * LDN_grid$pop_den.scaled+ 
+  LDN_grid$count_CHs.scaled
 
 rook_shared_edge.nb <- poly2nb(LDN_grid,queen=FALSE)
 A.rook_shared_edge <- nb2listw(rook_shared_edge.nb,style="B", zero.policy = TRUE)
