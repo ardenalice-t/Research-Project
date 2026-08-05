@@ -186,7 +186,7 @@ model_4 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled * LDN_grid$pop_den.scaled 
   LDN_grid$pc_65_plus.scaled * LDN_grid$pop_den.scaled +
   LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled + 
   LDN_grid$pc_bad_gh.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$avg_hos_dpr.scaled * LDN_grid$pop_den.scaled +
+  LDN_grid$avg_hos_dpr.scaled +
   LDN_grid$pop_den.scaled+ 
   LDN_grid$WD_pop_den.scaled + 
   LDN_grid$count_sports.scaled +
@@ -196,7 +196,7 @@ model_5 <- LDN_grid$count_AEDs ~ LDN_grid$pc_f.scaled * LDN_grid$pop_den.scaled 
   LDN_grid$pc_65_plus.scaled * LDN_grid$pop_den.scaled +
   LDN_grid$pc_50_plus.scaled * LDN_grid$pop_den.scaled + 
   LDN_grid$pc_bad_gh.scaled * LDN_grid$pop_den.scaled +
-  LDN_grid$avg_hos_dpr.scaled * LDN_grid$pop_den.scaled +
+  LDN_grid$avg_hos_dpr.scaled +
   LDN_grid$pop_den.scaled + 
   LDN_grid$WD_pop_den.scaled + 
   LDN_grid$count_sports.scaled * LDN_grid$pop_den.scaled +
@@ -256,8 +256,8 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5", "model
 # Regression --------------------------------------------------------------
 
 # initializing a model ranking csv
-#write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
-#          "results/regression_results/model_ranking.csv", col.names = FALSE)
+write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
+          "results/regression_results/model_ranking.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])
@@ -317,6 +317,18 @@ car_output <- spautolm(formula = final_model,
                        data = LDN_grid, listw=final_matrix, 
                        family="CAR",
                        method = "Matrix_J")
+
+# Saving final result
+unique_model_name = "selected_model"
+filename = paste("results/regression_results/", unique_model_name,
+                 ".csv", sep="")
+
+model_summary = summary(car_output)
+coefs = as.data.frame(model_summary$Coef)
+coefs$variable = names(model_summary$fit$coefficients)
+coefs$formula = "model_5"
+coefs$neighbours = "A.rook_shared_edge"
+write.csv(coefs, filename)
 
 
 # Comparing residual spatial correlation to linear test
