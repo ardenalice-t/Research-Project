@@ -60,6 +60,10 @@ distances <- st_distance(boundary_points, relevent_centres)
 max_distance <- max(apply(distances, MARGIN = 1, min))
 max_distance # output: [1] 220.4549
 
+### for use in the ds coursework
+furrr::future_map_dbl(split(distances, row(x)), min)
+
+
 # Making a list of grid center coordinates
 london_grid_centers <- st_centroid(truncated_grid)
 london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
