@@ -18,6 +18,8 @@ library(dplyr)
 ## Functions ---------------------------------------------------------------
 
 source("functions/plot_descriptive_ldn.R")
+source("functions/clean_coef_names.R")
+source("functions/plotRegression.R")
 
 ## Files -------------------------------------------------------------------
 
@@ -291,8 +293,8 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5", "model
 # Regression --------------------------------------------------------------
 
 # initializing a model ranking csv
-write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
-          "results/regression_results/model_ranking.csv", col.names = FALSE)
+#write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood", "ML Residual Variance", "AIC"), 
+#          "results/regression_results/model_ranking.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])
@@ -353,11 +355,6 @@ car_output <- spautolm(formula = final_model,
                        family="CAR",
                        method = "Matrix_J")
 
-logLik(car_output) - logLik(linear.out)
-final_AIC <- 2 * model_summary$parameters - (2*model_summary$LL)
-
-final_AIC - linear_AIC
-
 # Saving final result
 unique_model_name = "selected_model"
 filename = paste("results/regression_results/", unique_model_name,
@@ -366,9 +363,14 @@ filename = paste("results/regression_results/", unique_model_name,
 model_summary = summary(car_output)
 coefs = as.data.frame(model_summary$Coef)
 coefs$variable = names(model_summary$fit$coefficients)
-coefs$formula = "model_5"
+coefs$formula = "model_9"
 coefs$neighbours = "A.rook_shared_edge"
 write.csv(coefs, filename)
+
+logLik(car_output) - logLik(linear.out)
+final_AIC <- 2 * model_summary$parameters - (2*model_summary$LL)
+
+final_AIC - linear_AIC
 
 
 # Comparing residual spatial correlation to linear test
@@ -393,11 +395,15 @@ print(paste("Percentage Change:",
 # Looking at coefficient correlation
 coef_cov <- car_output$fit$imat
 coef_cor <- cov2cor(coef_cov)
+rownames(coef_cor) <- clean_coef_names(rownames(coef_cor), abbreviations = TRUE)
+colnames(coef_cor) <- clean_coef_names(colnames(coef_cor), abbreviations = TRUE)
+
+
 coef_cor <- melt(coef_cor) 
 ggplot(coef_cor, aes(X1, X2)) +
   geom_tile(aes(fill = value)) +
-  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0))
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white", midpoint=0, limits=c(-1,1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
 
 # viewing signal non spatial and spatial
 LDN_grid$signal_trend <- car_output$fit$signal_trend
@@ -416,9 +422,11 @@ LDN_grid$AED_demand <- car_output$fit$fitted.values
 plot_descriptive_ldn("AED_demand",title = "AED Demand", 
                      legend_title = "Number of AEDs", map = LDN_grid, 
                      cap=TRUE, max_val = 3, bins=5)
+plotRegresssion("AED_demand",title = "AED Demand", map = LDN_grid,
+                max_relevant_val = 6)
 
 
 # Saving Model ------------------------------------------------------------
 
-write_sf(LDN_grid, "data/Regressed_data_ldn_2026_08_04.gpkg")
+write_sf(LDN_grid, "data/Regressed_data_ldn_2026_08_06.gpkg")
 #gpkg file allows for more than 10 character file names 
