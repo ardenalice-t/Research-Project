@@ -12,9 +12,9 @@
 #' @examples
 #' rownames(coef_cor) <- clean_coef_names(rownames(coef_cor))
 clean_coef_names <- function(column, pc_symbol=FALSE, abbreviations=FALSE){
-  stopifnot(is.logical(pc_symbol) &
-              is.logical(abbreviations)&
-              is.character(column))
+  stopifnot(is.logical(pc_symbol)) 
+  stopifnot(is.logical(abbreviations))
+    stopifnot(is.character(column))
   
   # general symbols
   column = gsub("LDN_grid[$]", "", column)
