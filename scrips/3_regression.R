@@ -273,11 +273,11 @@ model_9 <- LDN_grid$count_AEDs ~
   LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled
 
 model_10 <- LDN_grid$count_AEDs ~ 
-  sign(LDN_grid$pc_f.scaled) * LDN_grid$pc_f.scaled^2 + 
-  sign(LDN_grid$pc_65_plus.scaled) * LDN_grid$pc_65_plus.scaled^2 +
-  sign(LDN_grid$pc_50_plus.scaled) * LDN_grid$pc_50_plus.scaled^2 + 
-  sign(LDN_grid$pc_bad_gh.scaled) * LDN_grid$pc_bad_gh.scaled^2 +
-  sign(LDN_grid$avg_hos_dpr.scaled) * LDN_grid$avg_hos_dpr.scaled^2 +
+  exp(LDN_grid$pc_f.scaled) + 
+  exp(LDN_grid$pc_65_plus.scaled) +
+  exp(LDN_grid$pc_50_plus.scaled) + 
+  exp(LDN_grid$pc_bad_gh.scaled) +
+  exp(LDN_grid$avg_hos_dpr.scaled) +
   LDN_grid$pop_den.scaled+ 
   LDN_grid$WD_pop_den.scaled + 
   LDN_grid$count_sports.scaled +
@@ -357,7 +357,7 @@ car_output <- spautolm(formula = final_model,
 
 # Saving final result
 unique_model_name = "selected_model"
-filename = paste("results/regression_results/", unique_model_name,
+filename = paste("results/", unique_model_name,
                  ".csv", sep="")
 
 model_summary = summary(car_output)
