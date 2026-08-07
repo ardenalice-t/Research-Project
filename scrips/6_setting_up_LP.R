@@ -5,6 +5,7 @@
 library(sf)
 library(dplyr)
 library(maxcovr) # for the custom function + cite for code adapted from
+library(ggplot2)
 
 ## Functions ---------------------------------------------------------------
 
@@ -28,17 +29,10 @@ LDN_grid <- mutate(LDN_grid, "AED_demand.capped" = ifelse(AED_demand.capped > 3,
 (min(LDN_grid$AED_demand.capped) >= 0) && (max(LDN_grid$AED_demand.capped) <= 3)
 
 
-# Constructing Matrices ---------------------------------------------------
 
-british_crs = "EPSG:27700"
-lon_lat_crs = "EPSG:4326"
+# Finding max distance from centre ----------------------------------------
 
-LDN_grid <- st_transform(LDN_grid, lon_lat_crs)
-
-truncated_grid = LDN_grid[2001:2010,]
-plot(truncated_grid$geom)
-
-# Finding maximum distance from centre - to judge if i should use centres as the plotting points 
+# Finding maximum distance from centre - to judge if i should use centres as the plotting points
 center <- st_centroid(truncated_grid)
 normal_area <- median(st_area(truncated_grid)) - 20
 weird_regions <- as.numeric(st_area(truncated_grid)) < normal_area
@@ -60,8 +54,19 @@ distances <- st_distance(boundary_points, relevent_centres)
 max_distance <- max(apply(distances, MARGIN = 1, min))
 max_distance # output: [1] 220.4549
 
-### for use in the ds coursework
-furrr::future_map_dbl(split(distances, row(x)), min)
+
+# Creating LP Matrices ----------------------------------------------------
+
+british_crs = "EPSG:27700"
+lon_lat_crs = "EPSG:4326"
+
+LDN_grid <- st_transform(LDN_grid, lon_lat_crs)
+
+truncated_grid = LDN_grid
+
+# truncated_grid = LDN_grid[201:210,] # used to play with smaller grids
+# ggplot() +
+#   geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
 
 
 # Making a list of grid center coordinates
@@ -70,11 +75,9 @@ london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
 london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
 Nlocations <- nrow(london_grid_centers)
 
-# Creating a coverage matrix 
-# true if the distance satisifes the distance cut off condition. 
-total_coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
-                                     user = london_grid_centers,
-                                     distance_cutoff = 1) 
+# Creating a coverage matrix
+# true if the distance satisifes the distance cut off condition.
+total_coverage_matrix <- diag(1, Nlocations, Nlocations)
 chance_of_survival <- 0.5
 partial_coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
                                            user = london_grid_centers,
@@ -83,26 +86,24 @@ partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix )* c
 
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
+head(coverage_matrix)
+
 # Making objective function
 objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
 
-
-# Making constraint matrix 
-
+# Making constraint matrix
 location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
 
 total_cap = rep(1, Nlocations)
 total_cap = c(total_cap, rep(0, Nlocations))
-total_cap.dir = rep("<=", 1)
 total_cap.rhs = 100  # CHANGE TO CHANGE TOTAL
 
-fulfilled.constraint <- cbind(coverage_matrix, 
+fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
-fulfilled.constraint.dir <- rep(">=", Nlocations)
-fulfilled.constraint.rhs = truncated_grid$AED_demand.capped 
+fulfilled.constraint.rhs = truncated_grid$AED_demand.capped
 
+# Combining Matrices
 constraint.mat = rbind(total_cap, fulfilled.constraint)
-constraint.dir = c(total_cap.dir, fulfilled.constraint.dir)
 constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
 
 
@@ -110,6 +111,4 @@ constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
 
 write.csv(constraint.mat, "matrix_exports/constraint_mat_gradated.csv")
 write.csv(constraint.rhs, "matrix_exports/constraint_rhs.csv")
-write.csv(objective.fn, "matrix_exports/constraint_fct.csv")
-
-
+write.csv(objective.fn, "matrix_exports/objective_fct.csv")
