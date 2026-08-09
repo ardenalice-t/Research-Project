@@ -8,7 +8,7 @@ library(readr) # to read csv
 library(sf) # to read sf
 #library(readxl)
 library(ggplot2)
-library(dplyr) # for mutate 
+library(dplyr) # for mutate
 library(maxcovr) # for the custom function + cite for code adapted from bniaryccp
 
 ## Maps -------------------------------------------------------------------
@@ -52,8 +52,8 @@ london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
 london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
 Nlocations <- nrow(london_grid_centers)
 
-# Creating a coverage matrix 
-# true if the distance satisifes the distance cut off condition. 
+# Creating a coverage matrix
+# true if the distance satisifes the distance cut off condition.
 coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
                                      user = london_grid_centers,
                                      distance_cutoff = 100)
@@ -62,7 +62,7 @@ coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
 objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
 
 
-# Making constraint matrix 
+# Making constraint matrix
 
 location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
 
@@ -71,10 +71,10 @@ total_cap = c(total_cap, rep(0, Nlocations))
 total_cap.dir = rep("=", 1)
 total_cap.rhs = 100  # CHANGE TO CHANGE TOTAL
 
-fulfilled.constraint <- cbind(-coverage_matrix, 
+fulfilled.constraint <- cbind(-coverage_matrix,
                               diag(-1,nrow = Nlocations))
 fulfilled.constraint.dir <- rep("<=", Nlocations)
-fulfilled.constraint.rhs = - truncated_grid$demand_mutated 
+fulfilled.constraint.rhs = - truncated_grid$demand_mutated
 
 constraint.mat = rbind(total_cap, fulfilled.constraint)
 constraint.dir = c(total_cap.dir, fulfilled.constraint.dir)
@@ -92,7 +92,7 @@ write.csv(objective.fn, "matrix_exports/final/objective.fn.csv")
 # now import these matrices to google colab for use there
 
 lp.solution <- lp(direction= "min",
-                  objective.fn, 
+                  objective.fn,
                   constraint.mat,
                   constraint.dir,
                   constraint.rhs,
@@ -112,11 +112,11 @@ import_solution = function(filename, value_map = truncated_grid){
   print("--- Importing Solution ---")
   # reading csv
   solution <- read_csv(filename, col_names = FALSE, show_col_types = FALSE)
-  
+
   # just getting number of placed AEDs
   solution_facsol = as.list(solution[1:Nlocations,])$X1
   print(paste("Number of AEDs Placed: ", sum(solution_facsol)))
-  
+
   initial_demand <- value_map$demand_mutated
   remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations),]$X1
   remaining_demand2 <- initial_demand - solution[1:Nlocations,]$X1
@@ -128,8 +128,8 @@ import_solution = function(filename, value_map = truncated_grid){
     print(paste("Sum end of solution: ", sum(remaining_demand)))
     print(paste("Sum subtracting solutions: ", sum(remaining_demand2)))
   }
-  
-  
+
+
   pc_demand_covered = (sum(initial_demand) - sum(remaining_demand2)) / sum(initial_demand) * 100
   print(paste("% Demand covered: ", pc_demand_covered))
   #solution_to_plot(solution_facsol, st_centroid(truncated_grid), map=truncated_grid)
@@ -150,15 +150,15 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
   chosen_2facilities = facility_object$geometry[facility_solution==2]
   chosen_3facilities = facility_object$geometry[facility_solution==3]
   if (demand==TRUE){
-    ggplot() + 
+    ggplot() +
       geom_sf(data = ldn_boundary_map) +
-      geom_sf(data = map, lwd=0.0001, 
+      geom_sf(data = map, lwd=0.0001,
               aes(fill = demand_mutated)) +
       scale_fill_steps(breaks = seq(0, max_relevant_val, length = num_bins),
                        limit = c(0,10000),
                        na.value = "light blue",
-                       rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)), 
-                       name = legend_title) + 
+                       rescaler = ~ scales::rescale_max(.x, from =c(0,max_relevant_val)),
+                       name = legend_title) +
       geom_sf(data=chosen_1facilities,
               size = 0.1,alpha = 0.5,
               colour="yellow") +
@@ -175,24 +175,24 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
   else{
     facility_object$num_placed = facility_solution[1:Nlocations]
     facility_object = facility_object[facility_object$num_placed >0,]
-    
-    ggplot() + 
+
+    ggplot() +
       geom_sf(data = ldn_boundary_map,fill="grey") +
       geom_sf(data=facility_object,
               size = 0.07,alpha = 1,
               aes(colour=as.character(num_placed))) +
-      scale_color_discrete(palette = c( "yellow", "orange", "red"), name = "Number of AEDs") + 
+      scale_color_discrete(palette = c( "yellow", "orange", "red"), name = "Number of AEDs") +
       xlab("Longitude") +
       ylab("Latitude") +
       coord_sf(crs = st_crs(ldn_boundary_map)) +
       theme_minimal()
   }
-  
+
 }
 ?geom_sf
 
 # reading csv
-solution <- import_solution("matrix_exports/solution_6232.csv")
+solution <- import_solution("matrix_exports/gradated_sol_2062AEDs_18159locations.csv")
 print(sum(solution[18098:(18098*2)]))
 
 solution_to_plot(facility_solution = solution, facility_object = st_centroid(truncated_grid),
@@ -200,23 +200,35 @@ solution_to_plot(facility_solution = solution, facility_object = st_centroid(tru
 
 0.75 * 8310
 test = st_centroid(truncated_grid)
+test = st_transform(test, british_crs)
+truncated_grid = st_transform(truncated_grid, british_crs)
 test$num_placed = solution[1:Nlocations]
+test$num_placed = round(test$num_placed)
 test = test[test$num_placed >0,]
 
-ggplot() + 
-  geom_sf(data = ldn_boundary_map,fill="grey") +
+sum(test$num_placed )
+
+truncated_grid$remaining_demand = length(solution[(18098 + 1):(18098*2)])
+plot(truncated_grid["remaining_demand"])
+# think i need one that is count of aeds adding the aeds that are like 700 meters away to use as the demand to cover instead ? or like to use as something i need to figure it out but i dont think i can calculate demand in one awy here aand another way eslewhere.
+
+plot(truncated_grid["AED_demand.capped"])
+plot(test$geom, type = 'p', cex = 0.1, col='green', add=TRUE)
+
+ggplot() +
+  geom_sf(data = truncated_grid,fill="grey") +
   geom_sf(data=test,
           size = 0.07,alpha = 1,
           aes(colour=as.character(num_placed))) +
-  scale_color_discrete(palette = c( "yellow", "orange", "red"), name = "Number of AEDs") + 
+  scale_color_discrete(palette = c( "yellow", "orange", "red"), name = "Number of AEDs") +
   xlab("Longitude") +
   ylab("Latitude") +
-  coord_sf(crs = st_crs(ldn_boundary_map)) +
+  coord_sf(crs = st_crs(truncated_grid)) +
   theme_minimal()
 
 # Evaluation --------------------------------------------------------------
 
-# Assessing the current layout 
+# Assessing the current layout
 assess_solution(LDN_grid_map$cnt_AED)
 
 existing_distribution = mutate(LDN_grid_map, "capped_cntAED" = ifelse(cnt_AED >= 3, "3+", as.character(cnt_AED)))
