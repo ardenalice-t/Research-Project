@@ -29,7 +29,6 @@ LDN_grid <- mutate(LDN_grid, "AED_demand.capped" = ifelse(AED_demand.capped > 3,
 (min(LDN_grid$AED_demand.capped) >= 0) && (max(LDN_grid$AED_demand.capped) <= 3)
 
 
-
 # Finding max distance from centre ----------------------------------------
 
 # Finding maximum distance from centre - to judge if i should use centres as the plotting points
@@ -57,6 +56,7 @@ max_distance # output: [1] 220.4549
 
 # Creating LP Matrices ----------------------------------------------------
 
+# Changing crs for later function
 british_crs = "EPSG:27700"
 lon_lat_crs = "EPSG:4326"
 
@@ -64,7 +64,8 @@ LDN_grid <- st_transform(LDN_grid, lon_lat_crs)
 
 truncated_grid = LDN_grid
 
-# truncated_grid = LDN_grid[201:210,] # used to play with smaller grids
+# truncated_grid = LDN_grid[2001:3000,] # used to play with smaller grids
+ plot(truncated_grid$geom)
 # ggplot() +
 #   geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
 
@@ -96,7 +97,7 @@ location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
 
 total_cap = rep(1, Nlocations)
 total_cap = c(total_cap, rep(0, Nlocations))
-total_cap.rhs = 100  # CHANGE TO CHANGE TOTAL
+total_cap.rhs = 3  # CHANGE TO CHANGE TOTAL
 
 fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
@@ -112,3 +113,6 @@ constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
 write.csv(constraint.mat, "matrix_exports/constraint_mat_gradated.csv")
 write.csv(constraint.rhs, "matrix_exports/constraint_rhs.csv")
 write.csv(objective.fn, "matrix_exports/objective_fct.csv")
+
+# Saving London
+write_sf(LDN_grid, "data/capped_data_ldn.gpkg")
