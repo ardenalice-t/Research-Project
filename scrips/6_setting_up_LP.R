@@ -18,7 +18,7 @@ sf_to_latlong_matix <- function(sf_object){
 
 ## Files -------------------------------------------------------------------
 
-LDN_grid <- read_sf("data/detrended_data_ldn_2026_08_05.gpkg")
+LDN_grid <- read_sf("outputs/03_detrending/data/detrended_data_ldn.gpkg")
 
 # Capping Values ----------------------------------------------------------
 
@@ -77,7 +77,7 @@ london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
 Nlocations <- nrow(london_grid_centers)
 
 # Creating a coverage matrix
-# true if the distance satisifes the distance cut off condition.
+# true if the distance satisfies the distance cut off condition.
 total_coverage_matrix <- diag(1, Nlocations, Nlocations)
 chance_of_survival <- 0.5
 partial_coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
@@ -110,9 +110,9 @@ constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
 
 # Saving Matrices ---------------------------------------------------------
 
-write.csv(constraint.mat, "matrix_exports/constraint_mat_gradated.csv")
-write.csv(constraint.rhs, "matrix_exports/constraint_rhs.csv")
-write.csv(objective.fn, "matrix_exports/objective_fct.csv")
+write.csv(constraint.mat, "outputs/04_locations/data/LP_exports/constraint_mat_diag.csv")
+write.csv(constraint.rhs, "outputs/04_locations/data/LP_exports/constraint_rhs.csv")
+write.csv(objective.fn, "outputs/04_locations/data/LP_exports/objective_fct.csv")
 
 # Saving London
-write_sf(LDN_grid, "data/capped_data_ldn.gpkg")
+write_sf(LDN_grid, "outputs/04_locations/data/capped_data_ldn.gpkg")

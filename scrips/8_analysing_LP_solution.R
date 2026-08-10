@@ -84,7 +84,7 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
 
 ## Files -------------------------------------------------------------------
 
-LDN_grid <- read_sf("data/capped_data_ldn.gpkg")
+LDN_grid <- read_sf("outputs/04_locations/data/capped_data_ldn.gpkg")
 
 # Making Boundary Map -----------------------------------------------------
 
@@ -93,19 +93,57 @@ LDN_boundary <- st_cast(st_union(LDN_grid), "POLYGON")
 
 # Reading in a Solution ---------------------------------------------------
 
-solution_2062 <- import_solution("matrix_exports/gradated_sol_2062AEDs_18159locations.csv")
+solution_2062 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_2062AEDs_18159locations.csv")
 
-solution_4124 <- import_solution("matrix_exports/gradated_sol_4124AEDs_18159locations.csv")
+solution_4124 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_4124AEDs_18159locations.csv")
 
-solution_8248 <- import_solution("matrix_exports/gradated_sol_8248AEDs_18159locations.csv")
+solution_8248 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_8248AEDs_18159locations.csv")
 
-old_solution_8248 <- read_csv("matrix_exports/solution_7479.csv",
+# Diagonal Solutions
+
+diag_solution_8248 <- import_solution("outputs/04_locations/data/LP_imports/diag_sol_8248AEDs_18159locations.csv")
+
+diag_solution_4124 <- import_solution("outputs/04_locations/data/LP_imports/diag_sol_4124AEDs_18159locations.csv")
+
+diag_solution_1650 <- import_solution("outputs/04_locations/data/LP_imports/diag_sol_1650AEDs_18159locations.csv")
+
+old_solution_8248 <- read_csv("outputs/04_locations/data/LP_imports/solution_7479.csv",
                               col_names = FALSE, show_col_types = FALSE)$X1
 
-solution_10_loc <- read_csv("matrix_exports/gradated_sol_3AEDs_10locations.csv",
+solution_10_loc <- read_csv("outputs/04_locations/data/LP_imports/gradated_sol_3AEDs_10locations.csv",
                             col_names = FALSE, show_col_types = FALSE)$X1
 
-solution_to_plot(facility_solution = solution_2062[1:18159],
+
+# Plotting Solutions ------------------------------------------------------
+
+solution_to_plot(facility_solution = diag_solution_8248[1:18159],
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
-                 demand = FALSE)
+                 demand = TRUE)
+
+solution_to_plot(facility_solution = diag_solution_1650[1:18159],
+                 facility_object = st_centroid(LDN_grid),
+                 map = LDN_grid,
+                 demand = TRUE)
+
+
+# Remaining Demand --------------------------------------------------------
+
+LDN_grid$remaining_demand <- diag_solution_1650[(18159 + 1):(18159 * 2)]
+
+plot(LDN_grid["remaining_demand"])
+
+# i think i show this very partial plot and be like look its weird maybe you need
+# more of like an exponential
+# error for the amount of demand notbeing met
+# but then arguably is it better to not give a section the one that it needs or the
+# three that it needs
+# maybe its the number of people but thats taken into account with the number that
+# they need
+# so its interesting
+# but does seem arbitrary
+# arguably we want to decrease the distance to neared defib
+# then segue into introducing the second model that helps with median response
+# times of ambulance
+# talk about time to acc defib but then accounting for getting decid eout of boz,
+# calling wuould need to be done in both situations etc.

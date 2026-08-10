@@ -42,14 +42,14 @@ plot_coef_estimates = function(dataframe){
     ylab("Coefficient Estimate")
 }
 
-source("functions/clean_coef_names.R")
+source("src/clean_coef_names.R")
 
 ## Files -------------------------------------------------------------------
 
 # Reading in Coefficients -------------------------------------------------
 
 # Importing saved coefficients
-coef_files <- list.files(path="results/regression_results", pattern="*.csv",
+coef_files <- list.files(path="outputs/02_regression/data/regression_results", pattern="*.csv",
                          full.names=TRUE, recursive=FALSE)
 
 for(file in coef_files){
@@ -137,7 +137,7 @@ print(tibble(correlations[which.min(correlations$Correlation),]))
 # AIC Plot ----------------------------------------------------------------
 
 # Reading file
-model_rankings <- read_csv("results/model_ranking.csv",
+model_rankings <- read_csv("outputs/02_regression/data/model_ranking.csv",
                      skip = 1)[-1]
 
 # Cleaning names

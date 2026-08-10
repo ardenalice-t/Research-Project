@@ -16,14 +16,14 @@ library(dplyr)
 
 ## Functions ---------------------------------------------------------------
 
-source("functions/plot_descriptive_ldn.R")
-source("functions/clean_coef_names.R")
-source("functions/plotRegression.R")
+source("src/plot_descriptive_ldn.R")
+source("src/clean_coef_names.R")
+source("src/plotRegression.R")
 
 ## Files -------------------------------------------------------------------
 
 # Reading in grid map from 2_interpolating_to_grid.R
-LDN_grid <- read_sf("data/Grid_data_ldn_2026_07_31.gpkg")
+LDN_grid <- read_sf("outputs/01_interpolation/data/interpolated_LDN_grid.gpkg")
 
 
 # Scaling -----------------------------------------------------------------
@@ -63,7 +63,7 @@ for (col in scaled_cols){
 }
 
 # saving results
-write.csv(moran_I_results, "results/scaled_cols_morans_I.csv")
+write.csv(moran_I_results, "outputs/02_regression/data/scaled_cols_morans_I.csv")
 
 
 # Testing Correlation -----------------------------------------------------
@@ -298,7 +298,7 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5",
 # initializing a model ranking csv
 # write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood",
 #                      "ML Residual Variance", "AIC"),
-#           "results/regression_results/model_ranking.csv", col.names = FALSE)
+#           "outputs/02_regression/data/model_ranking.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])
@@ -320,7 +320,7 @@ for (n_model in 1:(length(models))){
 
     # Creating a dataframe of coefficient data
     unique_model_name = paste(model_name, Amat_name, sep="_")
-    filename = paste("results/regression_results/", unique_model_name,
+    filename = paste("outputs/02_regression/data/regression_results/", unique_model_name,
                      ".csv", sep="")
 
     model_summary = summary(car_output)
@@ -340,7 +340,7 @@ for (n_model in 1:(length(models))){
     print("Saving Files")
 
     write.csv(coefs, filename)
-    write.table(model_ranking, "results/regression_results/model_ranking.csv",
+    write.table(model_ranking, "outputs/02_regression/data/model_ranking.csv",
                 sep=",", append=TRUE, col.names = FALSE)
 
     print(paste("Finished Investigation for: ", model_name, Amat_name))
@@ -361,7 +361,7 @@ car_output <- spautolm(formula = final_model,
 
 # Saving final result
 unique_model_name = "selected_model"
-filename = paste("results/", unique_model_name,
+filename = paste("outputs/02_regression/data/", unique_model_name,
                  ".csv", sep="")
 
 model_summary = summary(car_output)
@@ -432,5 +432,4 @@ plotRegresssion("AED_demand",title = "AED Demand", map = LDN_grid,
 
 # Saving Model ------------------------------------------------------------
 
-write_sf(LDN_grid, "data/Regressed_data_ldn_2026_08_06.gpkg")
-#gpkg file allows for more than 10 character file names
+write_sf(LDN_grid, "outputs/02_regression/data/regressed_data_ldn.gpkg")

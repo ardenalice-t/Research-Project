@@ -12,16 +12,16 @@ library(ggplot2)
 
 ## Functions ---------------------------------------------------------------
 
-source("functions/plotRegression.R")
+source("src/plotRegression.R")
 
 ## Files -------------------------------------------------------------------
 
-LDN_grid <- read_sf("data/Regressed_data_ldn_2026_08_04.gpkg")
+LDN_grid <- read_sf("outputs/02_regression/data/regressed_data_ldn.gpkg")
 
 
 # Setting up Model - Change to read from file -----------------------------
 
-final_coefs <- read.csv("results/selected_model.csv")
+final_coefs <- read.csv("outputs/02_regression/data/selected_model.csv")
 
 # Detrending --------------------------------------------------------------
 
@@ -95,5 +95,5 @@ plotRegresssion("AED_demand", "Demand",
 
 # Saving Model ------------------------------------------------------------
 
-write_sf(LDN_grid, "data/detrended_data_ldn.gpkg")
+write_sf(LDN_grid, "outputs/03_detrending/data/detrended_data_ldn.gpkg")
 #gpkg file allows for more than 10 character file names
