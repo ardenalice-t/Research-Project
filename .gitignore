@@ -1,5 +1,9 @@
 # Additional files
 **/figures/
+**/gradated_coverage_matrix.csv
+**/constraint_mat_diag.csv
+**/constraint_mat_gradated.csv
+
 # History files
 .Rhistory
 .Rapp.history
