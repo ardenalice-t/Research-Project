@@ -147,3 +147,28 @@ plot(LDN_grid["remaining_demand"])
 # times of ambulance
 # talk about time to acc defib but then accounting for getting decid eout of boz,
 # calling wuould need to be done in both situations etc.
+
+# Test manual solution ----------------------------------------------------
+
+manual_test_sol <- read_csv("outputs/04_locations/data/LP_imports/solution_manual_test.csv")$x
+
+facility_solution = manual_test_sol[1:18159]
+facility_object = st_centroid(LDN_grid)
+facility_object$num_placed <- round(facility_solution)
+facility_object <- facility_object[(facility_object$num_placed  > 0 ),]
+
+ggplot() +
+  geom_sf(data = LDN_boundary) +
+  geom_sf(data = LDN_grid, lwd=0.0001,
+          aes(fill = AED_demand.capped)) +
+  scale_fill_steps(breaks = seq(0, 15, length = 6),
+                   limit = c(0,10000),
+                   na.value = "light blue",
+                   rescaler = ~ scales::rescale_max(.x, from =c(0,15)),
+                   name = "legend_title") +
+  geom_sf(data=facility_object,
+          size = 0.0001,alpha = 0.5,
+          aes(colour=as.character(num_placed))) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  coord_sf(crs = st_crs(LDN_boundary))
