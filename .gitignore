@@ -1,7 +1,5 @@
 # Additional files
-maps/
-data/
-plots/
+**/figures/
 # History files
 .Rhistory
 .Rapp.history
@@ -38,4 +36,3 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 .positai
-matrix_exports
