@@ -278,7 +278,7 @@ partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
 # [Time Intensive Line]
-#write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
+write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix_350.csv")
 
 ldn_grid_map$count_AEDs_gradated.350 = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
 

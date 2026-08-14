@@ -10,6 +10,7 @@
 library(sf)
 library(spdep)
 library(spatialreg)
+library(ggplot2)
 
 ## Functions ---------------------------------------------------------------
 
@@ -76,7 +77,8 @@ plotRegresssion("AED_demand.diag",title = "AED Demand", map = LDN_grid,
 
 # Final Model Grad -------------------------------------------------------------
 
-model_8 <- LDN_grid$count_AEDs_gradated ~
+# Need to redo to find best model
+model_8 <- LDN_grid$count_AEDs_gradated.350 ~
   LDN_grid$pc_f.scaled +
   LDN_grid$pc_65_plus.scaled +
   LDN_grid$pc_50_plus.scaled +
@@ -116,10 +118,6 @@ write.csv(coefs, filename)
 # Attaching fitted values
 LDN_grid$AED_demand.grad <- car_output.grad$fit$fitted.values
 
-
-plot_descriptive_ldn("AED_demand",title = "AED Demand",
-                     legend_title = "Number of AEDs", map = LDN_grid,
-                     cap=TRUE, max_val = 3, bins=5)
 plotRegresssion("AED_demand.grad",title = "AED Demand", map = LDN_grid,
                 max_relevant_val = 15)
 
@@ -127,3 +125,4 @@ plotRegresssion("AED_demand.grad",title = "AED Demand", map = LDN_grid,
 # Saving Model ------------------------------------------------------------
 
 write_sf(LDN_grid, "outputs/02_regression/data/regressed_data_ldn.gpkg")
+

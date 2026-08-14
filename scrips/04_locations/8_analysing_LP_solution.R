@@ -8,7 +8,7 @@ library(ggplot2)
 
 ## Functions ---------------------------------------------------------------
 
-import_solution = function(filename, value_map = LDN_grid){
+import_solution = function(filename, value_map = LDN_grid, grad= FALSE){
   print("--- Importing Solution ---")
   Nlocations <- nrow(LDN_grid)
 
@@ -19,23 +19,27 @@ import_solution = function(filename, value_map = LDN_grid){
   solution_facsol = as.list(solution[1:Nlocations,])$X1
   print(paste("Number of AEDs Placed: ", sum(solution_facsol)))
 
-  # Calculating remaining demand
-  initial_demand <- value_map$AED_demand.capped
-  remaining_demand <- solution[(Nlocations + 1):(2 *Nlocations),]$X1
-  remaining_demand2 <- initial_demand - solution[1:Nlocations,]$X1
-  remaining_demand2 = pmax(remaining_demand2, 0)
-  sanity_check =( max(abs(remaining_demand - remaining_demand2)) < 1e-10)
+  remaining_demand_endsol <- solution[(Nlocations + 1):(2 *Nlocations),]$X1
 
-  # Checking calculations have worked correctly
-  print(paste("Sanity Check: ", sanity_check))
-  if(sanity_check == FALSE){
-    print(paste("Sum demand: ", sum(initial_demand)))
-    print(paste("Sum end of solution: ", sum(remaining_demand)))
-    print(paste("Sum subtracting solutions: ", sum(remaining_demand2)))
+  # Calculating remaining demand
+  if(grad) initial_demand <- value_map$AED_demand.grad.capped
+  if(!grad) {
+    initial_demand <- value_map$AED_demand.diag.capped
+    remaining_demand_subtract <- initial_demand - solution[1:Nlocations,]$X1
+    remaining_demand_subtract = pmax(remaining_demand_subtract, 0)
+    sanity_check =( max(abs(remaining_demand_endsol - remaining_demand_subtract)) < 1e-10)
+
+    # Checking calculations have worked correctly
+    print(paste("Sanity Check: ", sanity_check))
+    if(sanity_check == FALSE){
+      print(paste("Sum subtracting solutions: ", sum(remaining_demand_subtract)))
+    }
   }
+  print(paste("Sum demand: ", sum(initial_demand)))
+  print(paste("Sum remaining demand: ", sum(remaining_demand_endsol)))
 
   # Calculating % demand covered
-  pc_demand_covered = (sum(initial_demand) - sum(remaining_demand2)) / sum(initial_demand) * 100
+  pc_demand_covered = (sum(initial_demand) - sum(remaining_demand_endsol)) / sum(initial_demand) * 100
   print(paste("Demand covered: ", round(pc_demand_covered, digits = 2), "%"))
 
   # Returning full solution
@@ -43,15 +47,19 @@ import_solution = function(filename, value_map = LDN_grid){
 }
 
 
-solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE,
+solution_to_plot = function(facility_solution, facility_object, map, grad = FALSE,
+                            demand=TRUE,
                             num_bins=6, max_relevant_val=3, legend_title="demand"){
+  if(grad) map$AED_demand <- map$AED_demand.grad.capped
+  if(!grad) map$AED_demand <- map$AED_demand.diag.capped
+
   facility_object$num_placed <- round(facility_solution)
   facility_object <- facility_object[(facility_object$num_placed  > 0 ),]
   if (demand==TRUE){
     ggplot() +
       geom_sf(data = LDN_boundary) +
       geom_sf(data = map, lwd=0.0001,
-              aes(fill = AED_demand.capped)) +
+              aes(fill = AED_demand)) +
       scale_fill_steps(breaks = seq(0, max_relevant_val, length = num_bins),
                        limit = c(0,10000),
                        na.value = "light blue",
@@ -85,6 +93,7 @@ solution_to_plot = function(facility_solution, facility_object, map, demand=TRUE
 ## Files -------------------------------------------------------------------
 
 LDN_grid <- read_sf("outputs/04_locations/data/capped_data_ldn.gpkg")
+LDN_grid <- LDN_grid[5001:6000,]
 
 # Making Boundary Map -----------------------------------------------------
 
@@ -98,6 +107,15 @@ solution_2062 <- import_solution("outputs/04_locations/data/LP_imports/gradated_
 solution_4124 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_4124AEDs_18159locations.csv")
 
 solution_8248 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_8248AEDs_18159locations.csv")
+
+tiny_3 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_3AEDs_10locations.csv",
+                          grad=TRUE)
+tiny_3_placement = tiny_3[1:10]
+
+medium <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_100AEDs_1000locations.csv",
+                          grad=TRUE)
+medium_placement = medium[1:1000]
+
 
 # Diagonal Solutions
 
@@ -126,6 +144,21 @@ solution_to_plot(facility_solution = diag_solution_1650[1:18159],
                  map = LDN_grid,
                  demand = TRUE)
 
+solution_to_plot(facility_solution = medium_placement,
+                 facility_object = st_centroid(LDN_grid),
+                 map = LDN_grid,
+                 demand = TRUE,
+                 grad=TRUE,
+                 max_relevant_val = 15)
+medium_remains = medium[1001:2000]
+round(LDN_grid$AED_demand.grad.capped[151:160], digits=2)
+medium_placement[151:160]
+round(medium_remains[151:160], digits=2)
+
+LDN_grid$remaining_demand <- medium_remains
+
+plot(LDN_grid["AED_demand.grad.capped"])
+plot(facility_object["num_placed"], add=TRUE)
 
 # Remaining Demand --------------------------------------------------------
 

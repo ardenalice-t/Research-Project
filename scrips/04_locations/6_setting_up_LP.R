@@ -22,11 +22,23 @@ LDN_grid <- read_sf("outputs/03_detrending/data/detrended_data_ldn.gpkg")
 
 # Capping Values ----------------------------------------------------------
 
-LDN_grid <- mutate(LDN_grid, "AED_demand.capped" = ifelse(AED_demand.detrended < 0, 0, AED_demand.detrended))
-LDN_grid <- mutate(LDN_grid, "AED_demand.capped" = ifelse(AED_demand.capped > 3, 3, AED_demand.capped))
+LDN_grid <- mutate(LDN_grid, "AED_demand.diag.capped" =
+                     ifelse(AED_demand.diag.detrended < 0, 0, AED_demand.diag.detrended))
+LDN_grid <- mutate(LDN_grid, "AED_demand.diag.capped" =
+                     ifelse(AED_demand.diag.capped > 3, 3, AED_demand.diag.capped))
+
+LDN_grid <- mutate(LDN_grid, "AED_demand.grad.capped" =
+                     ifelse(AED_demand.grad.detrended < 0, 0, AED_demand.grad.detrended))
+LDN_grid <- mutate(LDN_grid, "AED_demand.grad.capped" =
+                     ifelse(AED_demand.grad.capped > 15, 15, AED_demand.grad.capped))
 
 # Testing
-(min(LDN_grid$AED_demand.capped) >= 0) && (max(LDN_grid$AED_demand.capped) <= 3)
+(min(LDN_grid$AED_demand.diag.capped) >= 0) && (max(LDN_grid$AED_demand.diag.capped) <= 3)
+(min(LDN_grid$AED_demand.grad.capped) >= 0) && (max(LDN_grid$AED_demand.grad.capped) <= 15)
+
+# Saving London -----------------------------------------------------------
+
+write_sf(LDN_grid, "outputs/04_locations/data/capped_data_ldn.gpkg")
 
 
 # Finding max distance from centre ----------------------------------------
@@ -54,7 +66,7 @@ max_distance <- max(apply(distances, MARGIN = 1, min))
 max_distance # output: [1] 220.4549
 
 
-# Creating LP Matrices ----------------------------------------------------
+# Creating Diag LP Matrices ----------------------------------------------------
 
 # Changing crs for later function
 british_crs = "EPSG:27700"
@@ -77,13 +89,67 @@ london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
 Nlocations <- nrow(london_grid_centers)
 
 # Creating a coverage matrix
-# true if the distance satisfies the distance cut off condition.
-total_coverage_matrix <- diag(1, Nlocations, Nlocations)
-chance_of_survival <- 0.5
+coverage_matrix <- diag(1, Nlocations, Nlocations)
+
+head(coverage_matrix)
+
+# Making objective function
+objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
+
+# Making constraint matrix
+total_cap = rep(1, Nlocations)
+total_cap = c(total_cap, rep(0, Nlocations))
+total_cap.rhs = 3  # CHANGE TO CHANGE TOTAL
+
+fulfilled.constraint <- cbind(coverage_matrix,
+                              diag(1,nrow = Nlocations))
+fulfilled.constraint.rhs = truncated_grid$AED_demand.diag.capped
+
+# Combining Matrices
+constraint.mat = rbind(total_cap, fulfilled.constraint)
+constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
+
+
+## Saving Matrices ---------------------------------------------------------
+
+write.csv(constraint.mat, "outputs/04_locations/data/LP_exports/constraint_mat_diag.csv")
+write.csv(constraint.rhs, "outputs/04_locations/data/LP_exports/constraint_rhs_diag.csv")
+write.csv(objective.fn, "outputs/04_locations/data/LP_exports/objective_fct.csv")
+
+
+# Creating Grad LP Matrices ----------------------------------------------------
+
+# Changing crs for later function
+british_crs = "EPSG:27700"
+lon_lat_crs = "EPSG:4326"
+
+LDN_grid <- st_transform(LDN_grid, lon_lat_crs)
+
+truncated_grid = LDN_grid
+
+#truncated_grid = LDN_grid[5001:6000,] # used to play with smaller grids
+plot(truncated_grid$geom)
+# ggplot() +
+#   geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
+
+
+# Making a list of grid center coordinates
+london_grid_centers <- st_centroid(truncated_grid)
+london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
+london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
+Nlocations <- nrow(london_grid_centers)
+
+# LOADING COVERAGE MATRIX FROM FILE
+total_coverage_matrix <- diag(1, nrow(london_grid_centers), nrow(london_grid_centers))
+chance_of_survival <- 0.513 # calculated from Valenzuela et al, 10% every minute
+# so the relative difference of 7 mins
+max_distance <- 350 # at 6 km / hr in 7 mins can travel 700 m - then halved
+
 partial_coverage_matrix <- binary_matrix_cpp(facility = london_grid_centers,
-                                           user = london_grid_centers,
-                                           distance_cutoff = 700)
-partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix )* chance_of_survival
+                                             user = london_grid_centers,
+                                             distance_cutoff = 350)
+partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
+  chance_of_survival
 
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
@@ -93,26 +159,24 @@ head(coverage_matrix)
 objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
 
 # Making constraint matrix
-location_zero_matrix = matrix(0, nrow = Nlocations, ncol= Nlocations)
-
 total_cap = rep(1, Nlocations)
 total_cap = c(total_cap, rep(0, Nlocations))
 total_cap.rhs = 3  # CHANGE TO CHANGE TOTAL
 
 fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
-fulfilled.constraint.rhs = truncated_grid$AED_demand.capped
+fulfilled.constraint.rhs = truncated_grid$AED_demand.grad.capped
 
 # Combining Matrices
 constraint.mat = rbind(total_cap, fulfilled.constraint)
 constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
 
 
-# Saving Matrices ---------------------------------------------------------
+## Saving Matrices ---------------------------------------------------------
 
-write.csv(constraint.mat, "outputs/04_locations/data/LP_exports/constraint_mat_diag.csv")
-write.csv(constraint.rhs, "outputs/04_locations/data/LP_exports/constraint_rhs.csv")
+write.csv(constraint.mat, "outputs/04_locations/data/LP_exports/constraint_mat_grad.csv")
+write.csv(constraint.rhs, "outputs/04_locations/data/LP_exports/constraint_rhs_grad.csv")
 write.csv(objective.fn, "outputs/04_locations/data/LP_exports/objective_fct.csv")
 
-# Saving London
-write_sf(LDN_grid, "outputs/04_locations/data/capped_data_ldn.gpkg")
+
+
