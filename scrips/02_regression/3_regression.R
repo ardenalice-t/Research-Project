@@ -64,7 +64,7 @@ for (col in scaled_cols){
 
 # saving results
 write.csv(moran_I_results, "outputs/02_regression/data/scaled_cols_morans_I.csv")
-
+write_sf(LDN_grid, "outputs/02_regression/data/scaled_data_ldn.gpkg")
 
 # Testing Correlation -----------------------------------------------------
 
