@@ -1,8 +1,10 @@
 # Additional files
 **/figures/
 **/gradated_coverage_matrix.csv
+**/gradated_coverage_matrix_350.csv
 **/constraint_mat_diag.csv
 **/constraint_mat_gradated.csv
+**/constraint_mat_grad.csv
 
 # History files
 .Rhistory
