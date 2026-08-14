@@ -266,10 +266,12 @@ ldn_grid_centers <- sf_to_latlong_matix(ldn_grid_centers)
 ldn_grid_centers <- as.matrix(ldn_grid_centers[ , c("lat", "long")])
 
 total_coverage_matrix <- diag(1, nrow(ldn_grid_centers), nrow(ldn_grid_centers))
-chance_of_survival <- 0.5
+chance_of_survival <- 0.513 # calculated from Valenzuela et al, 10% every minute
+# so the relative difference of 7 mins
+max_distance <- 350 # at 6 km / hr in 7 mins can travel 700 m - then halved
 partial_coverage_matrix <- binary_matrix_cpp(facility = ldn_grid_centers,
                                              user = ldn_grid_centers,
-                                             distance_cutoff = 700)
+                                             distance_cutoff = 350)
 partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
   chance_of_survival
 
@@ -278,9 +280,9 @@ coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 # [Time Intensive Line]
 #write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
 
-ldn_grid_map$count_AEDs_gradated = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
+ldn_grid_map$count_AEDs_gradated.350 = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
 
-plot_descriptive_ldn("count_AEDs_gradated", map = ldn_grid_map,
+plot_descriptive_ldn("count_AEDs_gradated.350", map = ldn_grid_map,
                      title="gradated AEDs", "Number of AEDs")
 plot_descriptive_ldn("count_AEDs", map = ldn_grid_map,
                      title="count AEDs", "Number of AEDs")
