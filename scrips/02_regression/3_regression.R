@@ -102,10 +102,14 @@ head(linear.out$residuals)
 
 linear_residual_moranI <- moran.test(linear.out$residuals, A.queen_shared_edge)
 
-print(paste("Moran's I Statistic Estimate:",
+print(paste("Moran's I Statistic z-score:",
             linear_residual_moranI$statistic))
 print(paste("Moran's I Statistic p value:",
             linear_residual_moranI$p.value))
+print(paste("Moran's I Statistic Estimate:",
+            linear_residual_moranI$estimate))
+
+?moran.test
 
 
 # Neighborhood Matrices --------------------------------------------------
@@ -268,7 +272,7 @@ model_9 <- LDN_grid$count_AEDs ~
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled +
   LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pop_den.scaled +
   LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled
 
 # Could make this into a non-linear model
@@ -298,7 +302,7 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5",
 # initializing a model ranking csv
 # write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood",
 #                      "ML Residual Variance", "AIC"),
-#           "outputs/02_regression/data/model_ranking.csv", col.names = FALSE)
+#           "outputs/02_regression/data/test_foreach_DELETE/model_ranking.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])
@@ -433,3 +437,20 @@ plotRegresssion("AED_demand",title = "AED Demand", map = LDN_grid,
 # Saving Model ------------------------------------------------------------
 
 write_sf(LDN_grid, "outputs/02_regression/data/regressed_data_ldn.gpkg")
+
+
+# Figures -----------------------------------------------------------------
+
+# Linear residuals of London
+LDN_grid$linear_residuals <- linear.out$residuals
+
+plot_descriptive_ldn("linear_residuals", legend_title = "Linear residuals",
+                     map = LDN_grid)
+
+ggplot() +
+  geom_sf(data = LDN_grid, lwd=0,
+          aes(fill = as.character(sign(linear_residuals)))) +
+  scale_fill_discrete(name = "Residual sign", labels = c("negative", "positive"))
+  xlab("Longitude") +
+  ylab("Latitude")
+
