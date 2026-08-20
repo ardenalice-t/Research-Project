@@ -35,6 +35,11 @@ make_ldn_grid = function(cell_meters, rule, to_cover = london_boundary_sf,
     intersection <- st_intersection(to_cover, st_grid)
     grid_map <- st_cast(intersection, "POLYGON")
   }
+  if(rule == "difference"){
+    without <- st_difference(to_cover, st_grid)
+    remainder <- st_intersection(st_grid, without)
+    grid_map <- st_cast(remainder, "POLYGON")
+  }
   return(grid_map)
 }
 
@@ -133,7 +138,6 @@ ldn_grid_map <- st_interpolate_aw(
 ldn_grid_map$ID <- seq.int(nrow(ldn_grid_map))
 
 plot_descriptive_ldn(relevant_col = "pop_den",
-                     title = "Population Density",
                      legend_title = "Residents per \nsquare km",
                      map = ldn_grid_map)
 
@@ -291,4 +295,74 @@ plot_descriptive_ldn("count_AEDs", map = ldn_grid_map,
 
 write_sf(ldn_grid_map, "outputs/01_interpolation/data/interpolated_LDN_grid.gpkg")
 #gpkg file allows for more than 10 character file names
+
+
+# Figures -----------------------------------------------------------------
+
+# Plotting london's Grid
+ldn_1km_grid = make_ldn_grid(1000, rule="intersection")
+view_grid_on_ldn(ldn_500_grid)
+view_grid_on_ldn(ldn_1km_grid)
+
+# Plotting AED current locations on london LSOAs
+ggplot() +
+  geom_sf(data = london_boundary_sf) +
+  geom_sf(data=AED_sf,
+          size = 0.1,alpha = 0.3,
+          colour="red") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  coord_sf(crs = st_crs(london_boundary_sf))
+
+# Interpolated Pop Den
+
+plot_descriptive_ldn(relevant_col = "pop_den",
+                     legend_title = "Residents per sq km",
+                     map = ldn_grid_map)
+plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den',
+                               legend_title = "Residents per sq km",
+                               map = ldn_grid_map)
+
+# Care Homes
+plot_descriptive_ldn(relevant_col = 'count_CHs',
+                               legend_title = "Number of \ncare facilities",
+                               map = ldn_grid_map)
+# binned version
+ggplot() +
+  geom_sf(data = ldn_grid_map, lwd=0,
+          aes(fill = count_CHs)) +
+  scale_fill_binned(name = "Number of \ncare facilities",
+                        labels = scales::label_number(),
+                        palette = "viridis", limits=c(0,4)) +
+  xlab("Longitude") +
+  ylab("Latitude")
+
+# histogram
+ggplot(ldn_grid_map, aes(x=count_CHs)) +
+  geom_histogram(bins=4) +
+  scale_fill_discrete(palette = "viridis")
+hist(ldn_grid_map$count_CHs, bins=3)
+
+# Table of interpolated Coefficients
+for(col in intensive_cols){
+  print(paste("--------------------", col, "--------------------"))
+  sum_area = sum( as.numeric(st_area(ldn_grid_map)))
+  aw_mean = sum(as.numeric(st_area(ldn_grid_map))* ldn_grid_map[[col]]) /
+    sum_area
+  aw_var = sum(as.numeric(st_area(ldn_grid_map)) * (aw_mean - ldn_grid_map[[col]])^2)/
+    sum_area
+  aw_sd = sqrt(aw_var)
+  print(paste("Mean val:", round(mean(ldn_grid_map[[col]]) , digits=2)))
+  print(paste("Mean val aw:", round(aw_mean * 100 , digits=2)))
+  print(paste("SD val aw:", round(aw_sd * 100 , digits=2)))
+  print(paste("SD val:", round(sd(ldn_grid_map[[col]]), digits=2)))
+}
+
+for(col in intensive_cols){
+  print(paste("--------------------", col, "--------------------"))
+  mean1 = sum(st_area(LSOA_map) * LSOA_map[[col]]) / sum(st_area(LSOA_map))
+  mean2 = mean(LSOA_map[[col]])
+  print(paste("Area Weighted Mean val 1:", round(mean1, digits=2)))
+  print(paste("Area Weighted Mean val 2:", round(mean2, digits=2)))
+  }
 
