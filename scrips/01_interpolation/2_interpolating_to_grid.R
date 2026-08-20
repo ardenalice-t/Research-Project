@@ -75,7 +75,7 @@ join_points_to_ldn = function(point_data_sf,name, ldn_map = ldn_grid_map){
   sf_use_s2(FALSE)
 
   # joining the points to the grid square they are within
-  pd_to_grid <- st_join(point_data_sf, ldn_map, join = st_within)
+  pd_to_grid <- st_join(point_data_sf, ldn_map, join = st_intersects)
 
   # counting points in each grid cell
   count_points <- count(as_tibble(pd_to_grid), ID, name=name)
@@ -104,25 +104,25 @@ lon_lat_crs = "EPSG:4326"
 london_boundary_sf <- st_cast(st_union(LSOA_map), "POLYGON")
 
 # Making 300 m and 500 m grids of London
-ldn_300_grid = make_ldn_grid(300, rule="contains")
+ldn_300_grid_contains = make_ldn_grid(300, rule="contains")
 ldn_300_grid_intsects = make_ldn_grid(300, rule="intersects")
 ldn_300_grid_intersection = make_ldn_grid(300, rule="intersection")
 ldn_500_grid = make_ldn_grid(500, rule="intersection")
 
 # Viewing outcomes
-view_grid_on_ldn(ldn_300_grid)
+view_grid_on_ldn(ldn_300_grid_contains)
 view_grid_on_ldn(ldn_300_grid_intsects)
 view_grid_on_ldn(ldn_300_grid_intersection)
 view_grid_on_ldn(ldn_500_grid)
 
 # Assessing Area loss
-find_area_loss = function(grid) return((st_area(london_boundary_sf) - sum(st_area(grid))) /
+find_area_loss = function(grid) return((st_area(london_boundary_sf) - st_area(st_union(grid))) /
                                          st_area(london_boundary_sf))
-find_area_loss(ldn_300_grid)
+find_area_loss(ldn_300_grid_contains)
 find_area_loss(ldn_300_grid_intsects)
 
 # Choosing a grid
-ldn_grid_map <- ldn_300_grid_intersection
+ldn_grid_map <- ldn_300_grid_contains # chosen because it maintains the river
 
 # Interpolation -----------------------------------------------------------
 
@@ -209,6 +209,9 @@ ggplot() +
                    name = "Number of AEDs") +
   ggtitle(label = "Number of AEDs")
 
+# Saving the total number of AEDs
+total_num_AEDs = sum(ldn_grid_map$count_AEDs)
+write_csv(data.frame(total_num_AEDs = total_num_AEDs), "outputs/01_interpolation/data/total_num_AEDs.csv")
 
 ## Care Homes --------------------------------------------------------------
 
@@ -282,14 +285,14 @@ partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
 # [Time Intensive Line]
-write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix_350.csv")
+write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
 
-ldn_grid_map$count_AEDs_gradated.350 = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
+ldn_grid_map$count_AEDs_gradated = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
 
-plot_descriptive_ldn("count_AEDs_gradated.350", map = ldn_grid_map,
-                     title="gradated AEDs", "Number of AEDs")
+plot_descriptive_ldn("count_AEDs_gradated", map = ldn_grid_map,
+                     "Number of AEDs")
 plot_descriptive_ldn("count_AEDs", map = ldn_grid_map,
-                     title="count AEDs", "Number of AEDs")
+                     "Number of AEDs")
 
 # Saving Grid Map ---------------------------------------------------------
 
@@ -319,7 +322,7 @@ ggplot() +
 plot_descriptive_ldn(relevant_col = "pop_den",
                      legend_title = "Residents per sq km",
                      map = ldn_grid_map)
-plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den',
+#plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den',
                                legend_title = "Residents per sq km",
                                map = ldn_grid_map)
 
