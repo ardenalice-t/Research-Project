@@ -165,3 +165,11 @@ plot_descriptive_ldn(relevant_col = 'avg_hos_dpr',
 print(paste("Average LSOA area:", mean(st_area(LSOA_map)/ 1000^2) ))
 print(paste("SD LSOA area:", sd(st_area(LSOA_map)/ 1000^2) ))
 
+# Average residents
+print(paste("Average LSOA population:",
+            mean(LSOA_map$pop_den * (st_area(LSOA_map)/ 1000^2))))
+print(paste("SD LSOA population:",
+            sd(LSOA_map$pop_den * (st_area(LSOA_map)/ 1000^2))))
+
+population = LSOA_map$pop_den * (as.numeric(st_area(LSOA_map)/ 1000^2))
+hist(population, breaks = 20)
