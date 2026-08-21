@@ -119,7 +119,7 @@ write.csv(coefs, filename)
 LDN_grid$AED_demand.grad <- car_output.grad$fit$fitted.values
 
 plotRegresssion("AED_demand.grad",title = "AED Demand", map = LDN_grid,
-                max_relevant_val = 15)
+                max_relevant_val = 10)
 
 
 # Saving Model ------------------------------------------------------------
