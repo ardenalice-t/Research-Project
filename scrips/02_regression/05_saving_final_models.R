@@ -25,26 +25,26 @@ LDN_grid <- read_sf("outputs/02_regression/data/scaled_data_ldn.gpkg")
 
 # Final Model Diag ------------------------------------------------------------
 
-model_9 <- LDN_grid$count_AEDs ~
+model_10 <- LDN_grid$count_AEDs ~
   LDN_grid$pc_f.scaled +
   LDN_grid$pc_65_plus.scaled +
-  #LDN_grid$pc_50_plus.scaled +
+  LDN_grid$pc_50_plus.scaled +
   LDN_grid$pc_bad_gh.scaled +
   LDN_grid$avg_hos_dpr.scaled +
   LDN_grid$pop_den.scaled+
   LDN_grid$WD_pop_den.scaled +
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled +
-  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_bad_gh.scaled : LDN_grid$pc_f.scaled
 
-rook_shared_edge.nb <- poly2nb(LDN_grid,queen=FALSE)
-A.rook_shared_edge <- nb2listw(rook_shared_edge.nb,style="B", zero.policy = TRUE)
+LDN_grid_centroid <- st_centroid(LDN_grid)
+nearest4.nb <- knn2nb(knearneigh(LDN_grid_centroid,k=4), sym = TRUE)
+A.nearest4 <- nb2listw(nearest4.nb,style="B", zero.policy = TRUE)
 
-
-final_model <- model_9
-final_matrix <- A.rook_shared_edge
+final_model <- model_10
+final_matrix <- A.nearest4
 
 car_output <- spautolm(formula = final_model,
                        data = LDN_grid, listw=final_matrix,
@@ -59,8 +59,8 @@ filename = paste("outputs/02_regression/data/", unique_model_name,
 model_summary = summary(car_output)
 coefs = as.data.frame(model_summary$Coef)
 coefs$variable = names(model_summary$fit$coefficients)
-coefs$formula = "model_9"
-coefs$neighbours = "A.rook_shared_edge"
+coefs$formula = "model_10"
+coefs$neighbours = "A.nearest4"
 write.csv(coefs, filename)
 
 
@@ -68,7 +68,7 @@ write.csv(coefs, filename)
 LDN_grid$AED_demand.diag <- car_output$fit$fitted.values
 
 
-plot_descriptive_ldn("AED_demand.diag",title = "AED Demand",
+plot_descriptive_ldn("AED_demand.diag",
                      legend_title = "Number of AEDs", map = LDN_grid,
                      cap=TRUE, max_val = 3, bins=5)
 plotRegresssion("AED_demand.diag",title = "AED Demand", map = LDN_grid,
@@ -78,7 +78,7 @@ plotRegresssion("AED_demand.diag",title = "AED Demand", map = LDN_grid,
 # Final Model Grad -------------------------------------------------------------
 
 # Need to redo to find best model
-model_8 <- LDN_grid$count_AEDs_gradated.350 ~
+model_10 <- LDN_grid$count_AEDs_gradated ~
   LDN_grid$pc_f.scaled +
   LDN_grid$pc_65_plus.scaled +
   LDN_grid$pc_50_plus.scaled +
@@ -88,14 +88,14 @@ model_8 <- LDN_grid$count_AEDs_gradated.350 ~
   LDN_grid$WD_pop_den.scaled +
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled +
-  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_65_plus.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_bad_gh.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$count_CHs.scaled : LDN_grid$pop_den.scaled
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_bad_gh.scaled : LDN_grid$pc_f.scaled
 
-final_model <- model_8
+rook_shared_edge.nb <- poly2nb(LDN_grid,queen=FALSE)
+A.rook_shared_edge <- nb2listw(rook_shared_edge.nb,style="B", zero.policy = TRUE)
+
+final_model <- model_10
 final_matrix <- A.rook_shared_edge
 
 car_output.grad <- spautolm(formula = final_model,
@@ -111,7 +111,7 @@ filename = paste("outputs/02_regression/data/", unique_model_name,
 model_summary = summary(car_output.grad)
 coefs = as.data.frame(model_summary$Coef)
 coefs$variable = names(model_summary$fit$coefficients)
-coefs$formula = "model_8"
+coefs$formula = "model_10"
 coefs$neighbours = "A.rook_shared_edge"
 write.csv(coefs, filename)
 
