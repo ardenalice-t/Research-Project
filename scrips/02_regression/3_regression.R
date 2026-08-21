@@ -109,8 +109,6 @@ print(paste("Moran's I Statistic p value:",
 print(paste("Moran's I Statistic Estimate:",
             linear_residual_moranI$estimate))
 
-?moran.test
-
 
 # Neighborhood Matrices --------------------------------------------------
 
@@ -300,9 +298,9 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5",
 # Regression --------------------------------------------------------------
 
 # initializing a model ranking csv
-# write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood",
-#                      "ML Residual Variance", "AIC"),
-#           "outputs/02_regression/data/test_foreach_DELETE/model_ranking.csv", col.names = FALSE)
+write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood",
+                     "ML Residual Variance", "AIC"),
+          "outputs/02_regression/data/model_ranking.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])
@@ -355,8 +353,8 @@ for (n_model in 1:(length(models))){
 
 # Final Model -------------------------------------------------------------
 
-final_model <- model_9
-final_matrix <- A.rook_shared_edge
+final_model <- model_10
+final_matrix <- A.nearest4
 
 car_output <- spautolm(formula = final_model,
                        data = LDN_grid, listw=final_matrix,
@@ -371,8 +369,8 @@ filename = paste("outputs/02_regression/data/", unique_model_name,
 model_summary = summary(car_output)
 coefs = as.data.frame(model_summary$Coef)
 coefs$variable = names(model_summary$fit$coefficients)
-coefs$formula = "model_9"
-coefs$neighbours = "A.rook_shared_edge"
+coefs$formula = "model_10"
+coefs$neighbours = "A.nearest4"
 write.csv(coefs, filename)
 
 logLik(car_output) - logLik(linear.out)
@@ -417,9 +415,9 @@ ggplot(coef_cor, aes(X1, X2)) +
 LDN_grid$signal_trend <- car_output$fit$signal_trend
 LDN_grid$signal_stochastic <- car_output$fit$signal_stochastic
 
-plot_descriptive_ldn("signal_trend", "Non-Spatial Demand", "Signal Trend",
+plot_descriptive_ldn("signal_trend", "Non-Spatial Demand",
                      LDN_grid)
-plot_descriptive_ldn("signal_stochastic", "Spatial Demand", "Signal Stochastic",
+plot_descriptive_ldn("signal_stochastic", "Spatial Demand",
                      LDN_grid)
 
 
@@ -427,11 +425,11 @@ plot_descriptive_ldn("signal_stochastic", "Spatial Demand", "Signal Stochastic",
 LDN_grid$AED_demand <- car_output$fit$fitted.values
 
 
-plot_descriptive_ldn("AED_demand",title = "AED Demand",
+plot_descriptive_ldn("AED_demand",
                      legend_title = "Number of AEDs", map = LDN_grid,
                      cap=TRUE, max_val = 3, bins=5)
 plotRegresssion("AED_demand",title = "AED Demand", map = LDN_grid,
-                max_relevant_val = 6)
+                max_relevant_val = 3)
 
 
 # Saving Model ------------------------------------------------------------
@@ -450,7 +448,8 @@ plot_descriptive_ldn("linear_residuals", legend_title = "Linear residuals",
 ggplot() +
   geom_sf(data = LDN_grid, lwd=0,
           aes(fill = as.character(sign(linear_residuals)))) +
-  scale_fill_discrete(name = "Residual sign", labels = c("negative", "positive"))
+  scale_fill_discrete(name = "Residual sign",
+                      labels = c("negative", "positive")) +
   xlab("Longitude") +
   ylab("Latitude")
 
