@@ -102,94 +102,145 @@ LDN_boundary <- st_cast(st_union(LDN_grid), "POLYGON")
 
 # Reading in a Solution ---------------------------------------------------
 
-solution_2062 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_2062AEDs_18159locations.csv")
+Nlocations = 16774
 
-solution_4124 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_4124AEDs_18159locations.csv")
-
-solution_8248 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_8248AEDs_18159locations.csv")
-
-tiny_3 <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_3AEDs_10locations.csv",
-                          grad=TRUE)
-tiny_3_placement = tiny_3[1:10]
-
-medium <- import_solution("outputs/04_locations/data/LP_imports/gradated_sol_100AEDs_1000locations.csv",
-                          grad=TRUE)
-medium_placement = medium[1:1000]
-
+sol_files <- list.files(path="outputs/04_locations/data/LP_imports", pattern="*.csv",
+                         full.names=TRUE, recursive=FALSE)
 
 # Diagonal Solutions
+for(sol_file in sol_files) {
+  import_solution(sol_file)
+}
 
-diag_solution_8248 <- import_solution("outputs/04_locations/data/LP_imports/diag_sol_8248AEDs_18159locations.csv")
+diag_solution_100pc <- import_solution(sol_files[6])
+diag_solution_60pc <- import_solution(sol_files[2])
 
-diag_solution_4124 <- import_solution("outputs/04_locations/data/LP_imports/diag_sol_4124AEDs_18159locations.csv")
-
-diag_solution_1650 <- import_solution("outputs/04_locations/data/LP_imports/diag_sol_1650AEDs_18159locations.csv")
-
-old_solution_8248 <- read_csv("outputs/04_locations/data/LP_imports/solution_7479.csv",
-                              col_names = FALSE, show_col_types = FALSE)$X1
-
-solution_10_loc <- read_csv("outputs/04_locations/data/LP_imports/gradated_sol_3AEDs_10locations.csv",
-                            col_names = FALSE, show_col_types = FALSE)$X1
-
-non_integer_8248 <- read_csv("outputs/04_locations/data/LP_imports/gradated_sol_8248AEDs_18159locations_non-integer.csv",
-                              col_names = FALSE, show_col_types = FALSE)$X1
-non_integer_placed <- non_integer_8248[1:18159]
-
-sum(round(non_integer_placed))
-non_integer_placed.rounded = round(non_integer_placed)
+existing_aeds <- LDN_grid$count_AEDs
 
 
 # Plotting Solutions ------------------------------------------------------
 
-solution_to_plot(facility_solution = diag_solution_8248[1:18159],
-                 facility_object = st_centroid(LDN_grid),
-                 map = LDN_grid,
-                 demand = TRUE)
-plot(LDN_grid["AED_demand.diag.capped"])
-
-solution_to_plot(facility_solution = diag_solution_1650[1:18159],
+solution_to_plot(facility_solution = diag_solution_60pc[1:Nlocations],
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
                  demand = TRUE)
 
-solution_to_plot(facility_solution = medium_placement,
+solution_to_plot(facility_solution = diag_solution_100pc[1:Nlocations],
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
-                 demand = TRUE,
-                 grad=TRUE,
-                 max_relevant_val = 15)
+                 demand = TRUE)
 
-solution_to_plot(facility_solution = non_integer_placed,
+solution_to_plot(facility_solution = existing_aeds,
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
-                 demand = TRUE,
-                 grad=TRUE,
-                 max_relevant_val = 15)
+                 demand = TRUE)
 
-medium_remains = medium[1001:2000]
-round(LDN_grid$AED_demand.grad.capped[151:160], digits=2)
-medium_placement[151:160]
-round(medium_remains[151:160], digits=2)
-
-LDN_grid$remaining_demand <- medium_remains
-
-plot(LDN_grid["AED_demand.grad.capped"])
-plot(facility_object["num_placed"], add=TRUE)
 
 # Remaining Demand --------------------------------------------------------
 
-LDN_grid$remaining_demand <- diag_solution_1650[(18159 + 1):(18159 * 2)]
+LDN_grid$remaining_demand <- diag_solution_100pc[(Nlocations + 1):(Nlocations * 2)]
 
 plot(LDN_grid["remaining_demand"])
 
 
 # New Statistic -----------------------------------------------------------
 
-solution <- diag_solution_8248[1:18159]
+get_filtered_placement_grid = function(solution, full=TRUE){
+  # To get an sf of just the centres of grids with AEDs placed in them,
+  # along with the number of AEDs in each of those grid squares
 
-LDN_grid_centres <- st_centroid(LDN_grid)
-LDN_grid_centres$num_placed <- round(solution) # for overflow errors
-LDN_solution_centres <- LDN_grid_centres[(LDN_grid_centres$num_placed  > 0 ),]
+  if (full) solution <- solution[1:Nlocations]
+
+  LDN_grid_centres <- st_centroid(LDN_grid)
+  LDN_grid_centres$num_placed <- round(solution) # for overflow errors
+  LDN_solution_centres <- LDN_grid_centres[(LDN_grid_centres$num_placed  > 0 ),]
+
+  return(LDN_solution_centres)
+}
+
+LDN_solution_centres <- get_filtered_placement_grid(diag_solution_100pc)
+
+
+# Proportion within -------------------------------------------------------
+
+
+find_pc_pop_uncovered = function(coverage_distance, AED_sites_sf, plot=TRUE, map = LDN_grid){
+  map$OG_region_area = as.numeric(st_area(map))
+
+  covered_zones = st_buffer(AED_sites_sf,dist = coverage_distance)
+
+  not_covered_zones = st_difference(map, st_union(covered_zones))
+
+  print(paste("Area removed: ", round(sum(st_area(map)) -
+                                        sum(st_area(not_covered_zones)),
+                                      digits =1)))
+
+  uncovered_plot = ggplot() +
+    geom_sf(data = st_union(map), fill="red", alpha = 0.7) +
+    geom_sf(data = st_union(not_covered_zones), fill="gray")
+  if(plot) print(uncovered_plot)
+
+  not_covered_zones$area_proportion_kept = as.numeric(st_area(not_covered_zones)) /
+    not_covered_zones$OG_region_area
+
+  not_covered_zones$pop_not_covered = not_covered_zones$area_proportion_kept *
+    (not_covered_zones$pop_den * as.numeric(st_area(not_covered_zones)) / 1000)
+  # the units arent correct but it might not matter - if regions uniform
+
+  pc_pop_uncovered = sum(not_covered_zones$pop_not_covered) /
+    sum(LDN_grid$pop_den * as.numeric(st_area(LDN_grid)) / 1000)
+
+  print(paste("% of population not covered:", round(pc_pop_uncovered * 100, digits = 2)))
+
+  return(pc_pop_uncovered)
+}
+
+pc_pop_uncovered_sol = find_pc_pop_uncovered(coverage_distance = 350,
+                             AED_sites_sf = LDN_solution_centres,
+                             map=LDN_grid)
+AED_sf = read_sf("outputs/01_interpolation/data/ldn_AEDs_map.gpkg")
+pc_pop_uncovered_existing = find_pc_pop_uncovered(coverage_distance = 350,
+                             AED_sites_sf = AED_sf,
+                             map=LDN_grid)
+
+pc_uncovered = 1
+distance = 132.5
+while(pc_uncovered > 0.5){
+  distance = distance + 1
+  print(paste("---------- distance:", distance, "----------"))
+  pc_uncovered = find_pc_pop_uncovered(coverage_distance = distance,
+                                       AED_sites_sf = LDN_solution_centres,
+                                       map=LDN_grid,
+                                       plot=(distance %% 50 == 0))
+  #print(paste("% uncovered:",pc_uncovered))
+}
+
+# for my solution, bin was 100-150 for 50%
+# now 130-140
+
+pc_uncovered = 1
+distance = 169.5
+while(pc_uncovered > 0.5){
+  distance = distance + 1
+  print(paste("---------- distance:", distance, "----------"))
+  pc_uncovered = find_pc_pop_uncovered(coverage_distance = distance,
+                                       AED_sites_sf = AED_sf,
+                                       map=LDN_grid,
+                                       plot=(distance %% 50 == 0))
+  #print(paste("% uncovered:",pc_uncovered))
+}
+# came out as 150-200
+# came out at 170-190 - much closer to 170
+
+
+
+
+# this would be good ? 12 % not covered ?
+
+
+
+
+# ARCHIVE -----------------------------------------------------------------
 
 find_distance_to_nearest_aed = function(location_sf, AED_sites_sf = LDN_solution_centres){
   nearest_aed_idx = st_nearest_feature(location_sf, AED_sites_sf)
@@ -274,8 +325,6 @@ barplot(bin_freqs_existing)
 # which is important because of ambulance arrival times
 
 
-# Proportion within -------------------------------------------------------
-
 LDN_solution_centres[1,]
 plot_points = function(points_sf, map=LDN_grid){
   ggplot() +
@@ -287,31 +336,6 @@ plot_points = function(points_sf, map=LDN_grid){
     ylab("Latitude") +
     coord_sf(crs = st_crs(map))
 }
-
-buffer_zones = st_buffer(LDN_solution_centres,dist = 350)
-
-LDN_grid$OG_region_area = as.numeric(st_area(LDN_grid))
-
-not_covered_zones = st_difference(LDN_grid, st_union(buffer_zones))
-sum(st_area(LDN_grid)) - sum(st_area(not_covered_zones))
-ggplot() +
-  geom_sf(data = not_covered_zones)
-
-
-not_covered_zones$area_proportion_kept = as.numeric(st_area(not_covered_zones)) /
-  not_covered_zones$OG_region_area
-
-min(not_covered_zones$area_proportion_kept )
-
-not_covered_zones$pop_not_covered = not_covered_zones$area_proportion_kept *
-  not_covered_zones$pop_den
-
-sum(not_covered_zones$pop_not_covered) / sum(LDN_grid$pop_den)
-
-# this would be good ? 12 % not covered ?
-
-
-
 
 # i think i show this very partial plot and be like look its weird maybe you need
 # more of like an exponential
