@@ -27,14 +27,30 @@ LDN_grid <- mutate(LDN_grid, "AED_demand.diag.capped" =
 LDN_grid <- mutate(LDN_grid, "AED_demand.diag.capped" =
                      ifelse(AED_demand.diag.capped > 3, 3, AED_demand.diag.capped))
 
+LDN_grid <- mutate(LDN_grid, "AED_demand.diag.additional" =
+                     ifelse(AED_demand.diag.capped - count_AEDs < 0,
+                            0,
+                            AED_demand.diag.capped - count_AEDs))
+plot(LDN_grid["AED_demand.diag.additional"])
+
+
+
 LDN_grid <- mutate(LDN_grid, "AED_demand.grad.capped" =
                      ifelse(AED_demand.grad.detrended < 0, 0, AED_demand.grad.detrended))
+chance_of_survival <- 0.513
+top_cap <- 3 + (8 * 3 * chance_of_survival)
 LDN_grid <- mutate(LDN_grid, "AED_demand.grad.capped" =
-                     ifelse(AED_demand.grad.capped > 15, 15, AED_demand.grad.capped))
+                     ifelse(AED_demand.grad.capped > top_cap, top_cap, AED_demand.grad.capped))
+
+LDN_grid <- mutate(LDN_grid, "AED_demand.grad.additional" =
+                     ifelse(AED_demand.grad.capped - count_AEDs_gradated < 0,
+                            0,
+                            AED_demand.grad.capped - count_AEDs_gradated))
+plot(LDN_grid["AED_demand.grad.additional"])
 
 # Testing
 (min(LDN_grid$AED_demand.diag.capped) >= 0) && (max(LDN_grid$AED_demand.diag.capped) <= 3)
-(min(LDN_grid$AED_demand.grad.capped) >= 0) && (max(LDN_grid$AED_demand.grad.capped) <= 15)
+(min(LDN_grid$AED_demand.grad.capped) >= 0) && (max(LDN_grid$AED_demand.grad.capped) <= top_cap)
 
 # Saving London -----------------------------------------------------------
 
@@ -105,15 +121,19 @@ fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
 fulfilled.constraint.rhs = truncated_grid$AED_demand.diag.capped
 
+fulfilled.constraint.rhs.additional = truncated_grid$AED_demand.diag.additional
+
 # Combining Matrices
 constraint.mat = rbind(total_cap, fulfilled.constraint)
 constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
+constraint.rhs.additional = c(total_cap.rhs, fulfilled.constraint.rhs.additional )
 
 
 ## Saving Matrices ---------------------------------------------------------
 
 write.csv(constraint.mat, "outputs/04_locations/data/LP_exports/constraint_mat_diag.csv")
 write.csv(constraint.rhs, "outputs/04_locations/data/LP_exports/constraint_rhs_diag.csv")
+write.csv(constraint.rhs.additional, "outputs/04_locations/data/LP_exports/constraint_rhs_diag_additional.csv")
 write.csv(objective.fn, "outputs/04_locations/data/LP_exports/objective_fct.csv")
 
 
@@ -155,6 +175,8 @@ coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
 head(coverage_matrix)
 
+
+
 # Making objective function
 objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
 
@@ -166,16 +188,19 @@ total_cap.rhs = 3  # CHANGE TO CHANGE TOTAL
 fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
 fulfilled.constraint.rhs = truncated_grid$AED_demand.grad.capped
+fulfilled.constraint.rhs.additional = truncated_grid$AED_demand.grad.additional
 
 # Combining Matrices
 constraint.mat = rbind(total_cap, fulfilled.constraint)
 constraint.rhs = c(total_cap.rhs, fulfilled.constraint.rhs )
+constraint.rhs.additional = c(total_cap.rhs, fulfilled.constraint.rhs.additional )
 
 
 ## Saving Matrices ---------------------------------------------------------
 
 write.csv(constraint.mat, "outputs/04_locations/data/LP_exports/constraint_mat_grad.csv")
 write.csv(constraint.rhs, "outputs/04_locations/data/LP_exports/constraint_rhs_grad.csv")
+write.csv(constraint.rhs.additional, "outputs/04_locations/data/LP_exports/constraint_rhs_grad_additional.csv")
 write.csv(objective.fn, "outputs/04_locations/data/LP_exports/objective_fct.csv")
 
 
