@@ -22,19 +22,20 @@ LDN_grid <- read_sf("outputs/03_detrending/data/detrended_data_ldn.gpkg")
 
 # Capping Values ----------------------------------------------------------
 
+## Diag -----
 LDN_grid <- mutate(LDN_grid, "AED_demand.diag.capped" =
                      ifelse(AED_demand.diag.detrended < 0, 0, AED_demand.diag.detrended))
 LDN_grid <- mutate(LDN_grid, "AED_demand.diag.capped" =
                      ifelse(AED_demand.diag.capped > 3, 3, AED_demand.diag.capped))
 
+# adding rhs demand matrices for adding to the existing distribution
 LDN_grid <- mutate(LDN_grid, "AED_demand.diag.additional" =
                      ifelse(AED_demand.diag.capped - count_AEDs < 0,
                             0,
                             AED_demand.diag.capped - count_AEDs))
 plot(LDN_grid["AED_demand.diag.additional"])
 
-
-
+## Grad ------
 LDN_grid <- mutate(LDN_grid, "AED_demand.grad.capped" =
                      ifelse(AED_demand.grad.detrended < 0, 0, AED_demand.grad.detrended))
 chance_of_survival <- 0.513
@@ -42,6 +43,7 @@ top_cap <- 3 + (8 * 3 * chance_of_survival)
 LDN_grid <- mutate(LDN_grid, "AED_demand.grad.capped" =
                      ifelse(AED_demand.grad.capped > top_cap, top_cap, AED_demand.grad.capped))
 
+# adding rhs demand matrices for adding to the existing distribution
 LDN_grid <- mutate(LDN_grid, "AED_demand.grad.additional" =
                      ifelse(AED_demand.grad.capped - count_AEDs_gradated < 0,
                             0,
@@ -59,27 +61,29 @@ write_sf(LDN_grid, "outputs/04_locations/data/capped_data_ldn.gpkg")
 
 # Finding max distance from centre ----------------------------------------
 
-# Finding maximum distance from centre - to judge if i should use centres as the plotting points
-center <- st_centroid(truncated_grid)
-normal_area <- median(st_area(truncated_grid)) - 20
-weird_regions <- as.numeric(st_area(truncated_grid)) < normal_area
-weird_regions <- truncated_grid[weird_regions,]
-
-boundary_points <- st_cast(weird_regions, "POINT")
-relevent_centres <- st_is_within_distance(center, boundary_points,dist = 800)
-relevant_TF <- c()
-i=1
-for (list in relevent_centres){
-  relevant_TF[i] <- (length(list) > 0)
-  i =i+1
-}
-relevent_centres <- center[relevant_TF,]
-
-plot(truncated_grid$geom)
-plot(boundary_points$geom, col = "red", add=TRUE)
-distances <- st_distance(boundary_points, relevent_centres)
-max_distance <- max(apply(distances, MARGIN = 1, min))
-max_distance # output: [1] 220.4549
+# Not needed with uniform grid
+#
+# # Finding maximum distance from centre - to judge if i should use centres as the plotting points
+# center <- st_centroid(truncated_grid)
+# normal_area <- median(st_area(truncated_grid)) - 20
+# weird_regions <- as.numeric(st_area(truncated_grid)) < normal_area
+# weird_regions <- truncated_grid[weird_regions,]
+#
+# boundary_points <- st_cast(weird_regions, "POINT")
+# relevent_centres <- st_is_within_distance(center, boundary_points,dist = 800)
+# relevant_TF <- c()
+# i=1
+# for (list in relevent_centres){
+#   relevant_TF[i] <- (length(list) > 0)
+#   i =i+1
+# }
+# relevent_centres <- center[relevant_TF,]
+#
+# plot(truncated_grid$geom)
+# plot(boundary_points$geom, col = "red", add=TRUE)
+# distances <- st_distance(boundary_points, relevent_centres)
+# max_distance <- max(apply(distances, MARGIN = 1, min))
+# max_distance # output: [1] 220.4549
 
 
 # Creating Diag LP Matrices ----------------------------------------------------
