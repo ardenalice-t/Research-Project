@@ -51,29 +51,28 @@ plotRegresssion("count_AEDs.detrended", "AEDs using CAR model DETREND", max_rele
 detrend_formula <- LDN_grid$count_AEDs.detrended ~
   LDN_grid$pc_f.scaled +
   LDN_grid$pc_65_plus.scaled +
-  #LDN_grid$pc_50_plus.scaled +
+  LDN_grid$pc_50_plus.scaled +
   LDN_grid$pc_bad_gh.scaled +
   LDN_grid$avg_hos_dpr.scaled +
   LDN_grid$pop_den.scaled+
   LDN_grid$WD_pop_den.scaled +
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled +
-  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_bad_gh.scaled : LDN_grid$pc_f.scaled
 
-rook_shared_edge.nb <- poly2nb(LDN_grid,queen=FALSE)
-A.rook_shared_edge <- nb2listw(rook_shared_edge.nb,style="B", zero.policy = TRUE)
-
+LDN_grid_centroid <- st_centroid(LDN_grid)
+nearest4.nb <- knn2nb(knearneigh(LDN_grid_centroid,k=4), sym = TRUE)
+A.nearest4 <- nb2listw(nearest4.nb,style="B", zero.policy = TRUE)
 
 # Regression of the demand against deprivation to show there is now no relation,
 # when accounting for medically relevant variables
 
 detrend_regression_solution <- spatialreg::spautolm(formula = detrend_formula,
                                                     data = LDN_grid,
-                                                    listw = A.rook_shared_edge,
-                                                    family = "CAR",
-                                                    method = "Matrix_J")
+                                                    listw = A.nearest4,
+                                                    family = "CAR")
 
 # Showing there is now no trend with household deprivation
 summary(detrend_regression_solution)
@@ -104,7 +103,7 @@ plotRegresssion("AED_demand.diag", "Demand",
 
 LDN_grid$count_AEDs_grad.detrended <-
   detrend_col(coefs = final_coefs.grad,
-              count_aed_col = "count_AEDs_gradated.350")
+              count_aed_col = "count_AEDs_gradated")
 
 
 # Testing Correlation
@@ -126,12 +125,12 @@ detrend_formula <- LDN_grid$count_AEDs_grad.detrended ~
   LDN_grid$WD_pop_den.scaled +
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled +
-  LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_65_plus.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_bad_gh.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$count_CHs.scaled : LDN_grid$pop_den.scaled
+  LDN_grid$pc_50_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pc_f.scaled  +
+  LDN_grid$pc_bad_gh.scaled : LDN_grid$pc_f.scaled
+
+rook_shared_edge.nb <- poly2nb(LDN_grid,queen=FALSE)
+A.rook_shared_edge <- nb2listw(rook_shared_edge.nb,style="B", zero.policy = TRUE)
 
 
 # Regression of the demand against deprivation to show there is now no relation,
