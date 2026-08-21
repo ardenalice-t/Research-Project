@@ -21,59 +21,9 @@ source("src/plotRegression.R")
 
 ## Files -------------------------------------------------------------------
 
-# Reading in grid map from 2_interpolating_to_grid.R
-LDN_grid <- read_sf("outputs/01_interpolation/data/interpolated_LDN_grid.gpkg")
+# Reading in grid map from 3_regression.R
+LDN_grid <- read_sf("outputs/02_regression/data/regressed_data_ldn.gpkg")
 
-
-# Scaling -----------------------------------------------------------------
-
-# Scaling all relevant variables
-regression_cols = c("pc_f", "pc_50_plus", "pc_65_plus", "pc_bad_gh", "avg_hos_dpr",
-                    "pop_den", "WD_pop_den", "count_sports", "count_CHs")
-scaled_cols = c()
-for (col in regression_cols){
-  scaled_col = paste(col, ".scaled", sep="")
-  scaled_cols = append(scaled_cols, scaled_col)
-  LDN_grid[scaled_col] = scale(st_drop_geometry(LDN_grid[col]))
-}
-
-
-# Testing results
-
-plot(LDN_grid["avg_hos_dpr.scaled"])
-
-
-# Testing spatial correlation
-
-# queen neighborhood matrix
-queen_shared_edge.nb <- poly2nb(LDN_grid,queen=TRUE)
-A.queen_shared_edge <- nb2listw(queen_shared_edge.nb,style="B", zero.policy = TRUE)
-
-
-moran_I_results <- data.frame(var_name = character(),
-                              estimate = numeric(),
-                              p.value = numeric())
-
-for (col in scaled_cols){
-  moran_test <- moran.test((LDN_grid[[col]]), A.queen_shared_edge)
-  moran_I_results[nrow(moran_I_results) + 1,]  <- list(col,
-                                                       moran_test$statistic, # not sure if this is supposed to be statistic or estimate
-                                                       moran_test$p.value)
-}
-
-# saving results
-write.csv(moran_I_results, "outputs/02_regression/data/scaled_cols_morans_I.csv")
-
-
-# Testing Correlation -----------------------------------------------------
-
-variable_correlation <-cor(st_drop_geometry(LDN_grid[scaled_cols]))
-variable_correlation <- melt(variable_correlation)
-
-ggplot(variable_correlation, aes(X1, X2)) +
-  geom_tile(aes(fill = value)) +
-  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0))
 
 # Linear Test -------------------------------------------------------------
 
@@ -90,6 +40,14 @@ linear_model = LDN_grid$count_AEDs_gradated ~ LDN_grid$pc_f.scaled +
 linear.out <- lm(formula = linear_model,
                  data = LDN_grid)
 
+# queen neighborhood matrix
+queen_shared_edge.nb <- poly2nb(LDN_grid,queen=TRUE)
+A.queen_shared_edge <- nb2listw(queen_shared_edge.nb,style="B", zero.policy = TRUE)
+
+
+linear.out <- lm(formula = linear_model,
+                 data = LDN_grid)
+
 linear_summary <- summary(linear.out); linear_summary
 
 linear_AIC <- 2 * linear.out$rank - (2*logLik(linear.out))
@@ -101,10 +59,12 @@ head(linear.out$residuals)
 
 linear_residual_moranI <- moran.test(linear.out$residuals, A.queen_shared_edge)
 
-print(paste("Moran's I Statistic Estimate:",
+print(paste("Moran's I Statistic z-score:",
             linear_residual_moranI$statistic))
 print(paste("Moran's I Statistic p value:",
             linear_residual_moranI$p.value))
+print(paste("Moran's I Statistic Estimate:",
+            linear_residual_moranI$estimate))
 
 
 # Neighborhood Matrices --------------------------------------------------
@@ -350,7 +310,7 @@ for (n_model in 1:(length(models))){
 
 # Final Model -------------------------------------------------------------
 
-final_model <- model_8
+final_model <- model_10
 final_matrix <- A.rook_shared_edge
 
 car_output <- spautolm(formula = final_model,
@@ -366,7 +326,7 @@ filename = paste("outputs/02_regression/data/", unique_model_name,
 model_summary = summary(car_output)
 coefs = as.data.frame(model_summary$Coef)
 coefs$variable = names(model_summary$fit$coefficients)
-coefs$formula = "model_8"
+coefs$formula = "model_10"
 coefs$neighbours = "A.rook_shared_edge"
 write.csv(coefs, filename)
 
@@ -412,9 +372,9 @@ ggplot(coef_cor, aes(X1, X2)) +
 LDN_grid$signal_trend <- car_output$fit$signal_trend
 LDN_grid$signal_stochastic <- car_output$fit$signal_stochastic
 
-plot_descriptive_ldn("signal_trend", "Non-Spatial Demand", "Signal Trend",
+plot_descriptive_ldn("signal_trend", "Non-Spatial Demand",
                      LDN_grid)
-plot_descriptive_ldn("signal_stochastic", "Spatial Demand", "Signal Stochastic",
+plot_descriptive_ldn("signal_stochastic", "Spatial Demand",
                      LDN_grid)
 
 
