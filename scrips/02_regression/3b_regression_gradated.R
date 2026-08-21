@@ -267,7 +267,7 @@ model_9 <- LDN_grid$count_AEDs_gradated ~
   LDN_grid$count_sports.scaled +
   LDN_grid$count_CHs.scaled +
   LDN_grid$pc_f.scaled : LDN_grid$pop_den.scaled +
-  LDN_grid$pc_50_plus.scaled : LDN_grid$pop_den.scaled +
+  LDN_grid$pc_65_plus.scaled : LDN_grid$pop_den.scaled +
   LDN_grid$count_sports.scaled : LDN_grid$pop_den.scaled
 
 # Could make this into a non-linear model
