@@ -48,7 +48,7 @@ import_solution = function(filename, value_map = LDN_grid, grad= FALSE){
 
 
 solution_to_plot = function(facility_solution, facility_object, map, grad = FALSE,
-                            demand=TRUE,
+                            demand=TRUE, additional=FALSE,
                             num_bins=6, max_relevant_val=3, legend_title="demand"){
   if(grad) map$AED_demand <- map$AED_demand.grad.capped
   if(!grad) map$AED_demand <- map$AED_demand.diag.capped
@@ -74,16 +74,32 @@ solution_to_plot = function(facility_solution, facility_object, map, grad = FALS
       coord_sf(crs = st_crs(LDN_boundary))
   }
   else{
-    ggplot() +
-      geom_sf(data = LDN_boundary) +
-      geom_sf(data=facility_object,
-              size = 0.0001,alpha = 0.5,
-              aes(colour=as.character(num_placed))) +
-      scale_color_discrete(palette = c( "yellow", "orange", "red"),
-                           name = "Number of AEDs") +
-      xlab("Longitude") +
-      ylab("Latitude") +
-      coord_sf(crs = st_crs(LDN_boundary))
+    if(additional){
+      ggplot() +
+        geom_sf(data = LDN_boundary) +
+        geom_sf(data=facility_object,
+                size = 0.01,alpha = 1,
+                aes(colour=as.character(num_placed))) +
+        scale_color_discrete(name = "Number of AEDs") +
+        geom_sf(data=AED_sf,
+                size = 0.0001,alpha = 0.3,
+                colour="gray") +
+        xlab("Longitude") +
+        ylab("Latitude") +
+        coord_sf(crs = st_crs(LDN_boundary))
+    }
+    else{
+      ggplot() +
+        geom_sf(data = LDN_boundary) +
+        geom_sf(data=facility_object,
+                size = 0.0001,alpha = 0.5,
+                aes(colour=as.character(num_placed))) +
+        scale_color_discrete(palette = c( "yellow", "orange", "red"),
+                             name = "Number of AEDs") +
+        xlab("Longitude") +
+        ylab("Latitude") +
+        coord_sf(crs = st_crs(LDN_boundary))
+    }
   }
 
 }
@@ -114,16 +130,27 @@ for(sol_file in sol_files) {
 
 diag_solution_100pc <- import_solution(sol_files[6])
 diag_solution_60pc <- import_solution(sol_files[2])
+diag_solution_add100 <- import_solution(sol_files[1])
+diag_solution_add10pc <- import_solution(sol_files[7])
+grad_solution_add10pc <- import_solution(sol_files[9])
 
 existing_aeds <- LDN_grid$count_AEDs
 
 
 # Plotting Solutions ------------------------------------------------------
 
-solution_to_plot(facility_solution = diag_solution_60pc[1:Nlocations],
+solution_to_plot(facility_solution = diag_solution_add10pc[1:Nlocations],
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
-                 demand = TRUE)
+                 demand = FALSE,
+                 additional=TRUE)
+
+solution_to_plot(facility_solution = grad_solution_add10pc[1:Nlocations],
+                 facility_object = st_centroid(LDN_grid),
+                 map = LDN_grid,
+                 demand = FALSE,
+                 additional=TRUE,
+                 grad=TRUE)
 
 solution_to_plot(facility_solution = diag_solution_100pc[1:Nlocations],
                  facility_object = st_centroid(LDN_grid),
