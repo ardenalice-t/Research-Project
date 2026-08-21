@@ -156,9 +156,9 @@ model_rankings$Formula = sub("model_","Model ", model_rankings$Formula)
 model_rankings$`Neighbor Matrix` <- factor(model_rankings$`Neighbor Matrix`,
                                     levels=
                                       c("Queen Adjacency", "Rook Adjacency",
-                                        "Lag 2", "Lag 4",
+                                        "Lag 2", "Lag 4",  "Nearest 4",
                                         "Distance 0.5 km", "Distance 1 km",
-                                        "Distance 1.5 km", "Nearest 4"))
+                                        "Distance 1.5 km" ))
 model_rankings$Formula<- factor(model_rankings$Formula,
                              levels=c("Model 1","Model 2","Model 3","Model 4",
                                       "Model 5","Model 6","Model 7","Model 8",
