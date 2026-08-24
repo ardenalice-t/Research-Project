@@ -285,7 +285,7 @@ partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
 # [Time Intensive Line]
-write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
+# write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
 
 ldn_grid_map$count_AEDs_gradated = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
 
@@ -303,8 +303,9 @@ write_sf(ldn_grid_map, "outputs/01_interpolation/data/interpolated_LDN_grid.gpkg
 # Figures -----------------------------------------------------------------
 
 # Plotting london's Grid
-ldn_1km_grid = make_ldn_grid(1000, rule="intersection")
-view_grid_on_ldn(ldn_500_grid)
+ldn_1km_grid = make_ldn_grid(1000, rule="contains")
+view_grid_on_ldn(ldn_1km_grid)
+ldn_1km_grid = make_ldn_grid(1000, rule="intersects")
 view_grid_on_ldn(ldn_1km_grid)
 
 # Plotting AED current locations on london LSOAs
@@ -322,9 +323,9 @@ ggplot() +
 plot_descriptive_ldn(relevant_col = "pop_den",
                      legend_title = "Residents per sq km",
                      map = ldn_grid_map)
-#plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den',
-                               legend_title = "Residents per sq km",
-                               map = ldn_grid_map)
+# plot_descriptive_ldn_exp_scale(relevant_col = 'pop_den',
+#                                legend_title = "Residents per sq km",
+#                                map = ldn_grid_map)
 
 # Care Homes
 plot_descriptive_ldn(relevant_col = 'count_CHs',
@@ -356,9 +357,7 @@ for(col in intensive_cols){
     sum_area
   aw_sd = sqrt(aw_var)
   print(paste("Mean val:", round(mean(ldn_grid_map[[col]]) , digits=2)))
-  print(paste("Mean val aw:", round(aw_mean * 100 , digits=2)))
-  print(paste("SD val aw:", round(aw_sd * 100 , digits=2)))
-  print(paste("SD val:", round(sd(ldn_grid_map[[col]]), digits=2)))
+  print(paste("Mean val aw:", round(aw_mean , digits=2)))
 }
 
 for(col in intensive_cols){
