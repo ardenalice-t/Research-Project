@@ -73,7 +73,7 @@ variable_correlation <- melt(variable_correlation)
 
 ggplot(variable_correlation, aes(X1, X2)) +
   geom_tile(aes(fill = value)) +
-  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white") +
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white", limits=c(-1,1)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0))
 
 # Linear Test -------------------------------------------------------------
