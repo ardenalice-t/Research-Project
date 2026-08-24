@@ -5,11 +5,13 @@
 library(sf)
 library(readr)
 library(ggplot2)
+library(stringr)
 
 ## Functions ---------------------------------------------------------------
 
 import_solution = function(filename, value_map = LDN_grid, grad= FALSE){
-  print("--- Importing Solution ---")
+  sol_name = str_sub(filename, start=38, end=-5)
+  print(paste("--- Importing Solution:", sol_name," ---"))
   Nlocations <- nrow(LDN_grid)
 
   # reading csv
@@ -43,7 +45,19 @@ import_solution = function(filename, value_map = LDN_grid, grad= FALSE){
   print(paste("Demand covered: ", round(pc_demand_covered, digits = 2), "%"))
 
   # Returning full solution
+  assign(sol_name, solution$X1, envir = .GlobalEnv)
+
   return (solution$X1)
+}
+
+get_diag_pc_demand_covered <- function(aed_sol){
+  existing_remaining_demand <- pmax(LDN_grid$AED_demand.diag.capped - aed_sol,0)
+  pc_demand_covered = (sum(LDN_grid$AED_demand.diag.capped) -
+                         sum(existing_remaining_demand)) /
+    sum(LDN_grid$AED_demand.diag.capped) * 100
+
+  print(paste("Demand covered: ", round(pc_demand_covered, digits = 2), "%"))
+  return(pc_demand_covered)
 }
 
 
@@ -55,6 +69,9 @@ solution_to_plot = function(facility_solution, facility_object, map, grad = FALS
 
   facility_object$num_placed <- round(facility_solution)
   facility_object <- facility_object[(facility_object$num_placed  > 0 ),]
+  facility_object$num_placed <- ifelse(facility_object$num_placed < 4,
+                                       as.character(facility_object$num_placed),
+                                       "4+")
   if (demand==TRUE){
     ggplot() +
       geom_sf(data = LDN_boundary) +
@@ -76,29 +93,34 @@ solution_to_plot = function(facility_solution, facility_object, map, grad = FALS
   else{
     if(additional){
       ggplot() +
-        geom_sf(data = LDN_boundary) +
+        geom_sf(data = LDN_boundary, fill="darkgray") +
         geom_sf(data=facility_object,
                 size = 0.01,alpha = 1,
                 aes(colour=as.character(num_placed))) +
-        scale_color_discrete(name = "Number of AEDs") +
+        scale_color_discrete(palette = c( "red", "orange", "yellow", "lightyellow", "lightgray"),
+                             name = "Number of AEDs") +
         geom_sf(data=AED_sf,
                 size = 0.0001,alpha = 0.3,
-                colour="gray") +
+                aes(colour=rep("Existing AED",nrow(AED_sf)))) +
         xlab("Longitude") +
         ylab("Latitude") +
-        coord_sf(crs = st_crs(LDN_boundary))
+        coord_sf(crs = st_crs(LDN_boundary)) +
+        theme(legend.key = element_rect(fill = "darkgray")) +
+        guides(colour = guide_legend(override.aes = list(size=3)))
     }
     else{
       ggplot() +
-        geom_sf(data = LDN_boundary) +
+        geom_sf(data = LDN_boundary, fill="darkgray") +
         geom_sf(data=facility_object,
                 size = 0.0001,alpha = 0.5,
                 aes(colour=as.character(num_placed))) +
-        scale_color_discrete(palette = c( "yellow", "orange", "red"),
+        scale_color_discrete(palette = c( "red", "orange", "yellow", "lightyellow"),
                              name = "Number of AEDs") +
         xlab("Longitude") +
         ylab("Latitude") +
-        coord_sf(crs = st_crs(LDN_boundary))
+        coord_sf(crs = st_crs(LDN_boundary)) +
+        theme(legend.key = element_rect(fill = "darkgray")) +
+        guides(colour = guide_legend(override.aes = list(size=3)))
     }
   }
 
@@ -128,40 +150,73 @@ for(sol_file in sol_files) {
   import_solution(sol_file)
 }
 
-diag_solution_100pc <- import_solution(sol_files[6])
-diag_solution_60pc <- import_solution(sol_files[2])
-diag_solution_add100 <- import_solution(sol_files[1])
-diag_solution_add10pc <- import_solution(sol_files[7])
-grad_solution_add10pc <- import_solution(sol_files[9])
+
+# Current Distribution ----------------------------------------------------
 
 existing_aeds <- LDN_grid$count_AEDs
 
+get_diag_pc_demand_covered(existing_aeds)
+
+
+AED_sf = read_sf("outputs/01_interpolation/data/ldn_AEDs_map.gpkg")
+
+# Coverage by % Used ------------------------------------------------------
+
+diag_pc_covered = data.frame(pc_AEDs=c(0),
+                             coverage=c(0))
+add_diag_sol <- function(solution){
+  to_add <- c(sum(solution) / num_existing_aeds * 100, get_diag_pc_demand_covered(solution))
+  diag_pc_covered <<- rbind(diag_pc_covered, to_add)
+}
+
+
+add_diag_sol(diagional_sol_793AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_1585AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_2378AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_3170AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_3963AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_4756AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_5548AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_6341AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_7133AEDs_16774locations[1:Nlocations])
+add_diag_sol(diagional_sol_7926AEDs_16774locations[1:Nlocations])
+#add_diag_sol(diagional_sol_11889AEDs_16774locations[1:Nlocations])
+
+ggplot() +
+  geom_line(data = diag_pc_covered, aes(x=pc_AEDs, y=coverage)) +
+  geom_point(data = diag_pc_covered, aes(x=pc_AEDs, y=coverage)) +
+  geom_hline(yintercept = get_diag_pc_demand_covered(existing_aeds),
+             color = "red", linetype = 2) +
+  annotate("text", x = 15, y = get_diag_pc_demand_covered(existing_aeds) + 5,
+           label = "Current distribution's coverage", size=3, col="red") +
+  xlab("Number of AEDs (% of current distribution)") +
+  ylab("Demand Coverage (%)")
 
 # Plotting Solutions ------------------------------------------------------
 
-solution_to_plot(facility_solution = diag_solution_add10pc[1:Nlocations],
+solution_to_plot(facility_solution = diagional_sol_7926AEDs_16774locations[1:Nlocations],
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
                  demand = FALSE,
-                 additional=TRUE)
+                 additional=FALSE)
 
-solution_to_plot(facility_solution = grad_solution_add10pc[1:Nlocations],
+solution_to_plot(facility_solution = existing_aeds,
+                 facility_object = st_centroid(LDN_grid),
+                 map = LDN_grid,
+                 demand = FALSE)
+
+solution_to_plot(facility_solution = diagional_sol_3963AEDs_16774locations[1:Nlocations],
+                 facility_object = st_centroid(LDN_grid),
+                 map = LDN_grid,
+                 demand = FALSE,
+                 additional=FALSE)
+
+solution_to_plot(facility_solution = gradated_sol_793AEDs_16774locations_additional[1:Nlocations],
                  facility_object = st_centroid(LDN_grid),
                  map = LDN_grid,
                  demand = FALSE,
                  additional=TRUE,
                  grad=TRUE)
-
-solution_to_plot(facility_solution = diag_solution_100pc[1:Nlocations],
-                 facility_object = st_centroid(LDN_grid),
-                 map = LDN_grid,
-                 demand = TRUE)
-
-solution_to_plot(facility_solution = existing_aeds,
-                 facility_object = st_centroid(LDN_grid),
-                 map = LDN_grid,
-                 demand = TRUE)
-
 
 # Remaining Demand --------------------------------------------------------
 
@@ -185,7 +240,7 @@ get_filtered_placement_grid = function(solution, full=TRUE){
   return(LDN_solution_centres)
 }
 
-LDN_solution_centres <- get_filtered_placement_grid(diag_solution_100pc)
+LDN_solution_centres <- get_filtered_placement_grid(diagional_sol_7926AEDs_16774locations)
 
 
 # Proportion within -------------------------------------------------------
@@ -225,15 +280,21 @@ find_pc_pop_uncovered = function(coverage_distance, AED_sites_sf, plot=TRUE, map
 pc_pop_uncovered_sol = find_pc_pop_uncovered(coverage_distance = 350,
                              AED_sites_sf = LDN_solution_centres,
                              map=LDN_grid)
+
+
 AED_sf = read_sf("outputs/01_interpolation/data/ldn_AEDs_map.gpkg")
 pc_pop_uncovered_existing = find_pc_pop_uncovered(coverage_distance = 350,
                              AED_sites_sf = AED_sf,
                              map=LDN_grid)
 
+# % with aed in their square
+sum(LDN_grid[LDN_grid$count_AEDs > 0,]$pop_den) / sum(LDN_grid$pop_den) #existing
+sum(LDN_solution_centres$pop_den) / sum(LDN_grid$pop_den) # rearranged
+
 pc_uncovered = 1
-distance = 132.5
+distance = 100
 while(pc_uncovered > 0.5){
-  distance = distance + 1
+  distance = distance + 20
   print(paste("---------- distance:", distance, "----------"))
   pc_uncovered = find_pc_pop_uncovered(coverage_distance = distance,
                                        AED_sites_sf = LDN_solution_centres,

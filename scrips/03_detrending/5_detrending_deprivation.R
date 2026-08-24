@@ -77,11 +77,23 @@ detrend_regression_solution <- spatialreg::spautolm(formula = detrend_formula,
 # Showing there is now no trend with household deprivation
 summary(detrend_regression_solution)
 
+# Saving detrended result
+unique_model_name = "detrended_model_diag"
+filename = paste("outputs/02_regression/data/", unique_model_name,
+                 ".csv", sep="")
+
+model_summary = summary(detrend_regression_solution)
+coefs = as.data.frame(model_summary$Coef)
+coefs$variable = names(model_summary$fit$coefficients)
+coefs$formula = "model_10"
+coefs$neighbours = "A.nearest4"
+write.csv(coefs, filename)
+
 # Finding % change between models
 percent_change <- ((final_coefs.diag$Estimate - unname(detrend_regression_solution$fit$coefficients)) /
                      final_coefs.diag$Estimate) * 100
 
-percent_change
+max(percent_change[-6]) * 100
 
 
 # Attaching fitted values
@@ -167,7 +179,71 @@ plotRegresssion("AED_demand.grad", "Demand",
                 max_relevant_val = 6, map = LDN_grid)
 
 
+
+# Finding borough changes -------------------------------------------------
+
+british_crs = "EPSG:27700"
+lon_lat_crs = "EPSG:4326"
+
+# Creating London map of local authroities
+LAD_map <- read_sf("data/maps/LAD")
+LAD_map <- st_transform(LAD_map, british_crs)
+
+# Getting just those intersecting London
+LAD_map <- st_intersection(LAD_map, st_union(LDN_grid))
+plot(LAD_map$geometry)
+
+sf_use_s2(FALSE)
+
+# joining the aeds to the LAD square they are within
+grid_to_LAD <- st_join(st_centroid(LDN_grid), LAD_map, join = st_intersects)
+
+library(dplyr)
+borough_changes = grid_to_LAD |>
+  group_by(LAD21NM) |>
+  summarise(`Original Model` = sum(count_AEDs),
+            `Detrended Model` = sum(count_AEDs.detrended),
+            change = sum(count_AEDs.detrended) - sum(count_AEDs))
+
+sum(borough_changes$change) # checking = 0
+
+borough_changes <- borough_changes[order(borough_changes$change,
+                                         decreasing = TRUE),]
+top_3_borough_changes <- rbind(borough_changes[32:34,], borough_changes[1:3,])
+top_3_borough_changes <- top_3_borough_changes[order(top_3_borough_changes$change,
+                                         decreasing = TRUE),]
+top_3_borough_changes$change = round(top_3_borough_changes$change)
+
+
+labels = c(NA,top_3_borough_changes$change[1], NA,
+           top_3_borough_changes$change[2], NA,
+           top_3_borough_changes$change[3],
+           top_3_borough_changes$change[4], NA,
+           top_3_borough_changes$change[5], NA,
+           top_3_borough_changes$change[6], NA)
+
+labels=as.character(labels); labels[2] = paste("+", labels[2], sep="")
+labels[4] = paste("+", labels[4], sep="")
+labels[6] = paste("+", labels[6], sep="")
+
+library(tidyr)
+top_3_borough_changes %>%
+  # Reshape data to long format
+  pivot_longer(cols = c( "Original Model","Detrended Model"),
+               names_to = "Model",
+               values_to = "AED Coverage") %>%
+  mutate(LAD21NM = factor(LAD21NM, levels=top_3_borough_changes$LAD21NM)) %>%
+  mutate(Model = factor(Model, levels=c( "Original Model","Detrended Model"))) %>%
+  ggplot(aes(x = LAD21NM, y = `AED Coverage`, fill = Model)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label=labels), vjust=-0.2) +
+  xlab("Local Authority District") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
 # Saving Model ------------------------------------------------------------
+
+LDN_grid$LAD <- grid_to_LAD$LAD21NM
 
 write_sf(LDN_grid, "outputs/03_detrending/data/detrended_data_ldn.gpkg")
 #gpkg file allows for more than 10 character file names

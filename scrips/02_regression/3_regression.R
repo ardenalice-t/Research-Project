@@ -69,12 +69,30 @@ write_sf(LDN_grid, "outputs/02_regression/data/scaled_data_ldn.gpkg")
 # Testing Correlation -----------------------------------------------------
 
 variable_correlation <-cor(st_drop_geometry(LDN_grid[scaled_cols]))
+rownames(variable_correlation) <- clean_coef_names(rownames(variable_correlation),
+                                                   abbreviations = TRUE,
+                                                   pc_symbol = TRUE)
+rownames(variable_correlation) <- c(rownames(variable_correlation)[1],
+                                    rownames(variable_correlation)[3],
+                                    rownames(variable_correlation)[2],
+                                    rownames(variable_correlation)[4:9])
+colnames(variable_correlation) <- clean_coef_names(colnames(variable_correlation),
+                                                   abbreviations = TRUE,
+                                                   pc_symbol = TRUE)
+colnames(variable_correlation) <- rownames(variable_correlation)
+
 variable_correlation <- melt(variable_correlation)
+
 
 ggplot(variable_correlation, aes(X1, X2)) +
   geom_tile(aes(fill = value)) +
-  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white", limits=c(-1,1)) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0))
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white",
+                       limits=c(-1,1), name="Correlation") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=14)) +
+  xlab("Variable") +
+  ylab("Variable")
 
 # Linear Test -------------------------------------------------------------
 
@@ -401,15 +419,20 @@ print(paste("Percentage Change:",
 # Looking at coefficient correlation
 coef_cov <- car_output$fit$imat
 coef_cor <- cov2cor(coef_cov)
-rownames(coef_cor) <- clean_coef_names(rownames(coef_cor), abbreviations = TRUE)
-colnames(coef_cor) <- clean_coef_names(colnames(coef_cor), abbreviations = TRUE)
+rownames(coef_cor) <- clean_coef_names(rownames(coef_cor), abbreviations = TRUE, pc_symbol = TRUE)
+colnames(coef_cor) <- clean_coef_names(colnames(coef_cor), abbreviations = TRUE, pc_symbol = TRUE)
 
 
 coef_cor <- melt(coef_cor)
 ggplot(coef_cor, aes(X1, X2)) +
   geom_tile(aes(fill = value)) +
-  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white", midpoint=0, limits=c(-1,1)) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  scale_fill_gradient2(low = "red", high = "darkgreen", mid="white", midpoint=0,
+                       limits=c(-1,1), name = "Correlation") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text=element_text(size=10),
+        axis.title=element_text(size=12)) +
+  xlab("Coefficient") +
+  ylab("Coefficient")
 
 # viewing signal non spatial and spatial
 LDN_grid$signal_trend <- car_output$fit$signal_trend

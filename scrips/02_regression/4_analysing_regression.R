@@ -30,16 +30,26 @@ plot_coef_estimates = function(dataframe){
     mutate(variable = factor(variable, levels = unique(variable))) %>%
     ggplot() +
     geom_point(aes(variable, Estimate,
-                   size = .data[["Pr(>|z|)"]], colour=neighbours),
+                   colour=neighbours),
                alpha=0.3) +
     geom_hline(yintercept = 0, color = "darkgray") +
-    scale_size_continuous(range = c(2,0.01), name = "p value",
-                          breaks =c(0.2, 0.4, 0.6, 0.8, 1), limits = c(1, 0)) +
     scale_colour_discrete(name = "Distance Matrix",
                           palette = "hue")+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     xlab("Variable Name") +
     ylab("Coefficient Estimate")
+}
+
+clean_neighbour_names = function(col){
+  col  = sub("A[.]","", col)
+  col = sub("lag","Lag ", col)
+  col  = sub("distance","Distance ", col)
+  col = sub("nearest","Nearest ", col)
+  col = sub("km"," km", col)
+  col = sub("_shared_edge"," Adjacency", col)
+  col = sub("queen","Queen", col)
+  col = sub("rook","Rook", col)
+  return(col)
 }
 
 source("src/clean_coef_names.R")
@@ -60,10 +70,14 @@ for(file in coef_files){
 print(length(coef_files) == length(unique(total_coef_matrix$formula)) *
   length(unique(total_coef_matrix$neighbours)))
 
+# Removing distance 0.5
+total_coef_matrix <- total_coef_matrix[!(total_coef_matrix$neighbours == "A.distance0.5km"),]
+
 # Cleaning variable names
 total_coef_matrix$variable <- clean_coef_names(total_coef_matrix$variable,
                                                pc_symbol = TRUE,
                                                abbreviations = TRUE)
+total_coef_matrix$neighbours <- clean_neighbour_names(total_coef_matrix$neighbours)
 
 
 # Plotting Regression Coefficients ----------------------------------------
@@ -140,17 +154,13 @@ print(tibble(correlations[which.min(correlations$Correlation),]))
 model_rankings <- read_csv("outputs/02_regression/data/model_ranking.csv",
                      skip = 1)[-1]
 
-# Cleaning names
-model_rankings$`Neighbor Matrix`  = sub("A[.]","", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix` = sub("lag","Lag ", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix`  = sub("distance","Distance ", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix` = sub("nearest","Nearest ", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix` = sub("km"," km", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix` = sub("_shared_edge"," Adjacency", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix` = sub("queen","Queen", model_rankings$`Neighbor Matrix`)
-model_rankings$`Neighbor Matrix` = sub("rook","Rook", model_rankings$`Neighbor Matrix`)
-model_rankings$Formula = sub("model_","Model ", model_rankings$Formula)
+# Removing distance 0.5 km
+model_rankings <- model_rankings[!(model_rankings$`Neighbor Matrix` == "A.distance0.5km"),]
 
+# Cleaning names
+model_rankings$`Neighbor Matrix` = clean_neighbour_names(model_rankings$`Neighbor Matrix`)
+
+model_rankings$Formula = sub("model_","Model ", model_rankings$Formula)
 
 # Ordering Combinations
 model_rankings$`Neighbor Matrix` <- factor(model_rankings$`Neighbor Matrix`,
