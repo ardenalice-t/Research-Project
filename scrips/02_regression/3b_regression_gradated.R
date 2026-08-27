@@ -255,9 +255,9 @@ names(models) <- c("model_1", "model_2", "model_3", "model_4", "model_5",
 # Regression --------------------------------------------------------------
 
 # initializing a model ranking csv
-# write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood",
-#                      "ML Residual Variance", "AIC"),
-#           "outputs/02_regression/data/model_ranking_gradated.csv", col.names = FALSE)
+ write.csv(data.frame("Formula", "Neighbor Matrix", "Log Likelihood",
+                      "ML Residual Variance", "AIC"),
+           "outputs/02_regression/data/model_ranking_gradated.csv", col.names = FALSE)
 
 for (n_model in 1:(length(models))){
   model_name <- names(models[n_model])

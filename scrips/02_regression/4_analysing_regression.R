@@ -6,8 +6,8 @@
 ## Packages ----------------------------------------------------------------
 
 library(readr)
-library(ggplot2) # for plotting
-library(dplyr) # for select
+library(ggplot2)
+library(dplyr)
 
 ## Functions ---------------------------------------------------------------
 
@@ -144,10 +144,6 @@ print(paste("SD of p value across all models:", sd(correlations$p_value)))
 print(paste("Combination with minimum correlation:") )
 print(tibble(correlations[which.min(correlations$Correlation),]))
 
-# Realised that the combination rows, and def any squared rows are no longer standardised.
-# so maybe i have to add them in earlier and standardise them then ?
-
-
 # AIC Plot ----------------------------------------------------------------
 
 # Reading file
@@ -207,6 +203,9 @@ for(file in coef_files){
 # Check import finished correctly
 print(length(coef_files) == length(unique(total_coef_matrix$formula)) *
         length(unique(total_coef_matrix$neighbours)))
+
+# Removing distance 0.5
+total_coef_matrix <- total_coef_matrix[!(total_coef_matrix$neighbours == "A.distance0.5km"),]
 
 # Cleaning variable names
 total_coef_matrix$variable <- clean_coef_names(total_coef_matrix$variable,
@@ -278,15 +277,15 @@ print(paste("SD of p value across all models:", sd(correlations$p_value)))
 print(paste("Combination with minimum correlation:") )
 print(tibble(correlations[which.min(correlations$Correlation),]))
 
-# Realised that the combination rows, and def any squared rows are no longer standardised.
-# so maybe i have to add them in earlier and standardise them then ?
-
 
 # AIC Plot ----------------------------------------------------------------
 
 # Reading file
 model_rankings <- read_csv("outputs/02_regression/data/model_ranking_gradated.csv",
                            skip = 1)[-1]
+
+# Removing distance 0.5 km
+model_rankings <- model_rankings[!(model_rankings$`Neighbor Matrix` == "A.distance0.5km"),]
 
 # Cleaning names
 model_rankings$`Neighbor Matrix`  = sub("A[.]","", model_rankings$`Neighbor Matrix`)
