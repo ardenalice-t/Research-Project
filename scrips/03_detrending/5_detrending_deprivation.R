@@ -157,6 +157,18 @@ detrend_regression_solution <- spatialreg::spautolm(formula = detrend_formula,
 # Showing there is now no trend with household deprivation
 summary(detrend_regression_solution)
 
+# saving results
+unique_model_name = "detrended_model_gradated"
+filename = paste("outputs/03_detrending/data/", unique_model_name,
+                 ".csv", sep="")
+
+model_summary = summary(detrend_regression_solution)
+coefs = as.data.frame(model_summary$Coef)
+coefs$variable = names(model_summary$fit$coefficients)
+coefs$formula = "model_10"
+coefs$neighbours = "A.rook_shared_edge"
+write.csv(coefs, filename)
+
 # Finding % change between models
 percent_change <- ((final_coefs.grad$Estimate - unname(detrend_regression_solution$fit$coefficients)) /
                      final_coefs.grad$Estimate) * 100
@@ -181,6 +193,7 @@ plotRegresssion("AED_demand.grad", "Demand",
 
 
 # Finding borough changes -------------------------------------------------
+LDN_grid <- read_sf("outputs/03_detrending/data/detrended_data_ldn.gpkg")
 
 british_crs = "EPSG:27700"
 lon_lat_crs = "EPSG:4326"
@@ -195,7 +208,7 @@ plot(LAD_map$geometry)
 
 sf_use_s2(FALSE)
 
-# joining the aeds to the LAD square they are within
+# joining the change to the LAD zone they are within
 grid_to_LAD <- st_join(st_centroid(LDN_grid), LAD_map, join = st_intersects)
 
 library(dplyr)
@@ -226,6 +239,7 @@ labels=as.character(labels); labels[2] = paste("+", labels[2], sep="")
 labels[4] = paste("+", labels[4], sep="")
 labels[6] = paste("+", labels[6], sep="")
 
+# plotting top and bottom 3 changes by LAD
 library(tidyr)
 top_3_borough_changes %>%
   # Reshape data to long format
@@ -237,8 +251,7 @@ top_3_borough_changes %>%
   ggplot(aes(x = LAD21NM, y = `AED Coverage`, fill = Model)) +
   geom_bar(position = "dodge", stat = "identity") +
   geom_text(aes(label=labels), vjust=-0.2) +
-  xlab("Local Authority District") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  xlab("Local Authority District")
 
 
 # Saving Model ------------------------------------------------------------

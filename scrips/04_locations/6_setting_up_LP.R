@@ -4,7 +4,7 @@
 
 library(sf)
 library(dplyr)
-library(maxcovr) # for the custom function + cite for code adapted from
+library(maxcovr) # for the custom function
 library(ggplot2)
 
 ## Functions ---------------------------------------------------------------
@@ -58,34 +58,6 @@ plot(LDN_grid["AED_demand.grad.additional"])
 
 write_sf(LDN_grid, "outputs/04_locations/data/capped_data_ldn.gpkg")
 
-
-# Finding max distance from centre ----------------------------------------
-
-# Not needed with uniform grid
-#
-# # Finding maximum distance from centre - to judge if i should use centres as the plotting points
-# center <- st_centroid(truncated_grid)
-# normal_area <- median(st_area(truncated_grid)) - 20
-# weird_regions <- as.numeric(st_area(truncated_grid)) < normal_area
-# weird_regions <- truncated_grid[weird_regions,]
-#
-# boundary_points <- st_cast(weird_regions, "POINT")
-# relevent_centres <- st_is_within_distance(center, boundary_points,dist = 800)
-# relevant_TF <- c()
-# i=1
-# for (list in relevent_centres){
-#   relevant_TF[i] <- (length(list) > 0)
-#   i =i+1
-# }
-# relevent_centres <- center[relevant_TF,]
-#
-# plot(truncated_grid$geom)
-# plot(boundary_points$geom, col = "red", add=TRUE)
-# distances <- st_distance(boundary_points, relevent_centres)
-# max_distance <- max(apply(distances, MARGIN = 1, min))
-# max_distance # output: [1] 220.4549
-
-
 # Creating Diag LP Matrices ----------------------------------------------------
 
 # Changing crs for later function
@@ -98,8 +70,8 @@ truncated_grid = LDN_grid
 
 # truncated_grid = LDN_grid[2001:3000,] # used to play with smaller grids
  plot(truncated_grid$geom)
-# ggplot() +
-#   geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
+ggplot() +
+  geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
 
 
 # Making a list of grid center coordinates
@@ -119,7 +91,7 @@ objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
 # Making constraint matrix
 total_cap = rep(1, Nlocations)
 total_cap = c(total_cap, rep(0, Nlocations))
-total_cap.rhs = 3  # CHANGE TO CHANGE TOTAL
+total_cap.rhs = 3  # updated in following python file
 
 fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
@@ -143,18 +115,14 @@ write.csv(objective.fn, "outputs/04_locations/data/LP_exports/objective_fct.csv"
 
 # Creating Grad LP Matrices ----------------------------------------------------
 
-# Changing crs for later function
-british_crs = "EPSG:27700"
-lon_lat_crs = "EPSG:4326"
-
 LDN_grid <- st_transform(LDN_grid, lon_lat_crs)
 
 truncated_grid = LDN_grid
 
 #truncated_grid = LDN_grid[5001:6000,] # used to play with smaller grids
 plot(truncated_grid$geom)
-# ggplot() +
-#   geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
+ggplot() +
+  geom_sf(data = truncated_grid, aes(fill=as.character(ID)))
 
 
 # Making a list of grid center coordinates
@@ -163,7 +131,7 @@ london_grid_centers <- sf_to_latlong_matix(london_grid_centers)
 london_grid_centers <- as.matrix(london_grid_centers[ , c("lat", "long")])
 Nlocations <- nrow(london_grid_centers)
 
-# LOADING COVERAGE MATRIX FROM FILE
+# Creating coverage matrix
 total_coverage_matrix <- diag(1, nrow(london_grid_centers), nrow(london_grid_centers))
 chance_of_survival <- 0.513 # calculated from Valenzuela et al, 10% every minute
 # so the relative difference of 7 mins
@@ -177,9 +145,6 @@ partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
 
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
-head(coverage_matrix)
-
-
 
 # Making objective function
 objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
@@ -187,7 +152,7 @@ objective.fn = c(rep(0, Nlocations), rep(1, Nlocations))
 # Making constraint matrix
 total_cap = rep(1, Nlocations)
 total_cap = c(total_cap, rep(0, Nlocations))
-total_cap.rhs = 3  # CHANGE TO CHANGE TOTAL
+total_cap.rhs = 3  # updated in following python file
 
 fulfilled.constraint <- cbind(coverage_matrix,
                               diag(1,nrow = Nlocations))
