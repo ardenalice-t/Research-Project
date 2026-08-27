@@ -285,12 +285,15 @@ partial_coverage_matrix <- (partial_coverage_matrix - total_coverage_matrix ) *
 coverage_matrix <- total_coverage_matrix + partial_coverage_matrix
 
 # [Time Intensive Line]
-# write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
+write.csv(coverage_matrix, "outputs/01_interpolation/data/gradated_coverage_matrix.csv")
 
 ldn_grid_map$count_AEDs_gradated = (ldn_grid_map$count_AEDs %*% coverage_matrix)[1,]
 
 plot_descriptive_ldn("count_AEDs_gradated", map = ldn_grid_map,
                      "Number of AEDs")
+source("src/plotRegression.R")
+plotRegresssion("count_AEDs", map = LDN_grid,
+                max_relevant_val = 5, legend_title = "AED Coverage")
 plot_descriptive_ldn("count_AEDs", map = ldn_grid_map,
                      "Number of AEDs")
 
@@ -362,9 +365,7 @@ for(col in intensive_cols){
 
 for(col in intensive_cols){
   print(paste("--------------------", col, "--------------------"))
-  mean1 = sum(st_area(LSOA_map) * LSOA_map[[col]]) / sum(st_area(LSOA_map))
-  mean2 = mean(LSOA_map[[col]])
-  print(paste("Area Weighted Mean val 1:", round(mean1, digits=2)))
-  print(paste("Area Weighted Mean val 2:", round(mean2, digits=2)))
+  mean = sum(st_area(LSOA_map) * LSOA_map[[col]]) / sum(st_area(LSOA_map))
+  print(paste("Area Weighted Mean:", round(mean, digits=2)))
   }
 
