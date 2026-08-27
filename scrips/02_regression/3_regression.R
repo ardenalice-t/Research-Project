@@ -354,7 +354,7 @@ for (n_model in 1:(length(models))){
                          Amat_name,
                          model_summary$LL,
                          car_output$fit$s2,
-                         2 * model_summary$parameters - (2*model_summary$LL))
+                         AIC(car_output))
 
     # Saving model files
     print("Saving Files")
@@ -378,6 +378,7 @@ car_output <- spautolm(formula = final_model,
                        data = LDN_grid, listw=final_matrix,
                        family="CAR",
                        method = "Matrix_J")
+
 
 # Saving final result
 unique_model_name = "selected_model"
@@ -429,8 +430,8 @@ ggplot(coef_cor, aes(X1, X2)) +
   scale_fill_gradient2(low = "red", high = "darkgreen", mid="white", midpoint=0,
                        limits=c(-1,1), name = "Correlation") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        axis.text=element_text(size=10),
-        axis.title=element_text(size=12)) +
+        axis.text=element_text(size=11),
+        axis.title=element_text(size=13)) +
   xlab("Coefficient") +
   ylab("Coefficient")
 
